@@ -248,3 +248,38 @@ export interface SavedProject {
   data: CalculatorProjectData;
   calculationEngineVersion?: string;
 }
+
+export type SaveKind = "manual" | "autosave" | "restore-safety" | "restore";
+
+export interface ProjectVersion {
+  id: string;
+  projectId: string;
+  revision: number;
+  savedAt: string;
+  saveKind: SaveKind;
+  data: CalculatorProjectData;
+}
+
+export interface WorkspaceNotification {
+  id: string;
+  createdAt: string;
+  title: string;
+  detail?: string;
+  level: "success" | "error" | "info";
+  read: boolean;
+  persistent: boolean;
+}
+
+export interface WorkspaceActivity {
+  id: string;
+  createdAt: string;
+  type: "saved" | "restored" | "opened" | "created";
+  projectId?: string;
+  projectName: string;
+  detail?: string;
+}
+
+export interface WorkspacePreferences {
+  autosave: boolean;
+  quickActions: Array<"new" | "save" | "search" | "favorites">;
+}

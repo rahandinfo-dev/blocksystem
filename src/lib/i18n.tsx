@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { previewMessages } from "@/lib/preview-messages";
+import { workspaceMessages } from "@/lib/workspace-messages";
 
 export const languages = ["ku", "ar", "en-GB"] as const;
 export type Language = (typeof languages)[number];
@@ -235,9 +236,9 @@ const ar: Messages = {
 };
 
 const dictionaries: Record<Language, Messages> = {
-  ku: { ...ku, ...previewMessages.ku },
-  ar: { ...ar, ...previewMessages.ar },
-  "en-GB": { ...en, ...previewMessages["en-GB"] },
+  ku: { ...ku, ...previewMessages.ku, ...workspaceMessages.ku },
+  ar: { ...ar, ...previewMessages.ar, ...workspaceMessages.ar },
+  "en-GB": { ...en, ...previewMessages["en-GB"], ...workspaceMessages["en-GB"] },
 };
 
 function interpolate(message: string, values?: MessageValues) {

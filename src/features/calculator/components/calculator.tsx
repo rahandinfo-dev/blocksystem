@@ -1,6 +1,6 @@
 "use client";
 import { Calculator as CalculatorIcon, Redo2, RotateCcw, Undo2 } from "lucide-react";
-import { useEffect, useMemo, useState, type SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import { blockDefinitions } from "@/features/calculator/config/blocks";
 import { calculateProject } from "@/features/calculator/lib/calculations";
 import {
@@ -34,6 +34,8 @@ import { SavedProjects } from "./saved-projects";
 import { WallPreview } from "./wall-preview";
 import { WallsEditor } from "./walls-editor";
 import { useI18n } from "@/lib/i18n";
+import { addWorkspaceNotification, getActiveProjectId, persistProject, setActiveProjectId } from "@/lib/project-storage";
+import { WorkspaceConsole } from "./workspace-console";
 
 const errorMessageKeys: Record<CalculationErrorCode, string> = {
   "invalid-room": "errors.invalidRoom",
@@ -121,16 +123,74 @@ export function Calculator() {
   const [past, setPast] = useState<CalculatorProjectData[]>([]);
   const [future, setFuture] = useState<CalculatorProjectData[]>([]);
   const [hasCalculated, setHasCalculated] = useState(false);
-  const setData = (next: SetStateAction<CalculatorProjectData>) => setRawData((current) => {
+  const [activeProjectId, setActiveProject] = useState<string | null>(null);
+  const [saveState, setSaveState] = useState<"saved" | "saving" | "unsaved" | "failed">("saved");
+  const [isDirty, setIsDirty] = useState(false);
+  const dataRef = useRef(data);
+  const activeProjectRef = useRef<string | null>(null);
+  const saveInFlight = useRef(false);
+  useEffect(() => { dataRef.current = data; }, [data]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { const active = getActiveProjectId(); activeProjectRef.current = active; setActiveProject(active); }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+  const setData = (next: SetStateAction<CalculatorProjectData>) => {
+    const current = dataRef.current;
     const resolved = typeof next === "function" ? next(current) : next;
-    if (JSON.stringify(resolved) === JSON.stringify(current)) return current;
+    if (JSON.stringify(resolved) === JSON.stringify(current)) return;
+    dataRef.current = resolved;
     setPast((entries) => [...entries, current].slice(-40));
     setFuture([]);
-    return resolved;
-  });
+    setIsDirty(true);
+    setSaveState("unsaved");
+    setRawData(resolved);
+  };
   const undo = () => setPast((entries) => { const previous = entries.at(-1); if (!previous) return entries; setFuture((items) => [data, ...items].slice(0, 40)); setRawData(previous); setHasCalculated(false); return entries.slice(0, -1); });
   const redo = () => setFuture((entries) => { const next = entries[0]; if (!next) return entries; setPast((items) => [...items, data].slice(-40)); setRawData(next); setHasCalculated(false); return entries.slice(1); });
   useEffect(() => { const shortcut = (event: KeyboardEvent) => { if (!(event.ctrlKey || event.metaKey)) return; if (event.key.toLowerCase() === "z") { event.preventDefault(); if (event.shiftKey) redo(); else undo(); } else if (event.key.toLowerCase() === "y") { event.preventDefault(); redo(); } }; window.addEventListener("keydown", shortcut); return () => window.removeEventListener("keydown", shortcut); });
+  const saveWorkspace = useCallback((kind: "manual" | "autosave" = "manual") => {
+    if (saveInFlight.current) return;
+    saveInFlight.current = true;
+    const snapshot = dataRef.current;
+    const fingerprint = JSON.stringify(snapshot);
+    setSaveState("saving");
+    const saved = persistProject(snapshot, kind, activeProjectRef.current);
+    saveInFlight.current = false;
+    if (!saved.ok) {
+      setSaveState("failed");
+      addWorkspaceNotification({ title: t("workspace.failed"), detail: t("workspace.saveFailed"), level: "error", persistent: true });
+      return;
+    }
+    activeProjectRef.current = saved.project.id;
+    setActiveProject(saved.project.id);
+    setActiveProjectId(saved.project.id);
+    const unchangedSinceSave = JSON.stringify(dataRef.current) === fingerprint;
+    setIsDirty(!unchangedSinceSave);
+    setSaveState(unchangedSinceSave ? "saved" : "unsaved");
+    if (kind === "manual") addWorkspaceNotification({ title: t("workspace.saveSuccess"), level: "success", persistent: false });
+  }, [t]);
+  useEffect(() => {
+    if (!isDirty) return;
+    const enabled = typeof window !== "undefined" && JSON.parse(window.localStorage.getItem("blocksystem:preferences:v1") ?? "{}").autosave !== false;
+    if (!enabled) return;
+    const timer = window.setTimeout(() => saveWorkspace("autosave"), 900);
+    return () => window.clearTimeout(timer);
+  }, [data, isDirty, saveWorkspace]);
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => { if (!isDirty) return; event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [isDirty]);
+  const loadWorkspaceProject = useCallback((loaded: CalculatorProjectData, projectId: string) => {
+    if (isDirty && !window.confirm(t("workspace.discardConfirm"))) return;
+    setRawData(loaded); setPast([]); setFuture([]); setHasCalculated(false); setIsDirty(false); setSaveState("saved");
+    activeProjectRef.current = projectId; setActiveProject(projectId); setActiveProjectId(projectId);
+  }, [isDirty, t]);
+  const newWorkspaceProject = useCallback(() => {
+    if (isDirty && !window.confirm(t("workspace.discardConfirm"))) return;
+    setRawData(createDefaultProject()); setPast([]); setFuture([]); setHasCalculated(false); setIsDirty(false); setSaveState("saved");
+    activeProjectRef.current = null; setActiveProject(null); setActiveProjectId(null);
+  }, [isDirty, t]);
   const selectedBlock = useMemo<BlockDefinition>(
     () =>
       data.settings.blockMode === "custom"
@@ -432,6 +492,14 @@ export function Calculator() {
     }));
   return (
     <div className="space-y-6">
+      <WorkspaceConsole
+        data={data}
+        activeProjectId={activeProjectId}
+        saveState={saveState}
+        onSave={() => saveWorkspace("manual")}
+        onNew={newWorkspaceProject}
+        onOpen={loadWorkspaceProject}
+      />
       <div className="print:hidden flex flex-wrap justify-end gap-2">
         <button type="button" onClick={undo} disabled={past.length === 0} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-45"><Undo2 size={18} /> گەڕاندنەوە</button>
         <button type="button" onClick={redo} disabled={future.length === 0} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-45"><Redo2 size={18} /> دووبارەکردنەوە</button>
@@ -442,10 +510,7 @@ export function Calculator() {
         />
         <button
           type="button"
-          onClick={() => {
-            setData(createDefaultProject());
-            setHasCalculated(false);
-          }}
+          onClick={newWorkspaceProject}
           className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold"
         >
           <RotateCcw size={18} /> پاککردنەوەی هەموو
@@ -602,10 +667,10 @@ export function Calculator() {
         <CalculationBreakdown result={result} />
         <SavedProjects
           data={data}
-          onLoad={(loaded) => {
-            setData(loaded);
-            setHasCalculated(false);
-          }}
+          activeProjectId={activeProjectId}
+          onSave={() => saveWorkspace("manual")}
+          onLoad={loadWorkspaceProject}
+          onNew={newWorkspaceProject}
         />
       </div>
     </div>
