@@ -1,0 +1,9 @@
+import { ChevronDown } from "lucide-react";
+
+import { formatArea, formatInteger } from "@/lib/format";
+import type { CalculationResult } from "@/features/calculator/types";
+
+export function CalculationBreakdown({ result }: { result?: CalculationResult }) {
+  if (!result) return null;
+  return <details className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-lg font-bold text-slate-950">وردەکاری حیساب <ChevronDown size={20} aria-hidden="true" /></summary><div className="mt-5 space-y-3 text-sm leading-7 text-slate-700"><p>کۆی ڕووبەری دیوارەکان = <strong dir="ltr">{formatArea(result.grossWallArea)} m²</strong></p><p>کەمکردنەوەی دەرگا و پەنجەرە = <strong dir="ltr">{formatArea(result.totalOpeningArea)} m²</strong></p><p>ڕووبەری پاک = <strong dir="ltr">{formatArea(result.netWallArea)} m²</strong></p><p>ڕووبەری ڕووکارى بلۆک = <strong dir="ltr">{formatArea(result.blockFaceArea)} m²</strong></p><p>ڕووبەری پاک ÷ ڕووبەری بلۆک = <strong>{formatInteger(result.requiredBlocks)} بلۆک</strong> (بەرەو سەرەوە ڕاونکراوەتەوە)</p><p>زیادەی {formatArea(result.wastePercentage)}٪ = <strong>{formatInteger(result.wasteBlocks)} بلۆک</strong></p><p className="border-t border-slate-200 pt-3 text-base font-bold text-slate-950">کۆی پێشنیارکراو = {formatInteger(result.recommendedBlocks)} بلۆک</p><div className="border-t border-slate-200 pt-4"><h3 className="font-bold text-slate-900">وردەکاری هەر {result.units.length > 1 ? "بەش" : "بەش"}</h3><ul className="mt-2 space-y-2">{result.units.map((unit, index) => <li key={unit.id} className="flex justify-between gap-3"><span>{unit.name || `بەش ${index + 1}`}</span><span dir="ltr">{formatArea(unit.grossWallArea)} − {formatArea(unit.totalOpeningArea)} = {formatArea(unit.netWallArea)} m²</span></li>)}</ul></div></div></details>;
+}

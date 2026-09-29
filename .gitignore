@@ -1,0 +1,44 @@
+# Dependencies and package-manager artifacts
+node_modules/
+.pnp/
+.pnp.*
+
+# Next.js build output
+.next/
+out/
+build/
+
+# Test output and logs
+coverage/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local environment configuration (keep the safe template public)
+.env
+.env.*
+!.env.example
+
+# Vercel and other deployment-local metadata
+.vercel/
+
+# TypeScript and temporary files
+*.tsbuildinfo
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# Editor and OS artifacts
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Certificates and private keys
+*.pem
+*.key
+*.pfx
+*.p12
