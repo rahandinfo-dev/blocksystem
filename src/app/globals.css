@@ -318,10 +318,6 @@ select[dir="ltr"] {
   min-height: 0;
 }
 
-.three-workspace > .min-h-0.flex-1 {
-  height: calc(100dvh - 5rem);
-}
-
 button,
 select,
 input {

@@ -14,9 +14,9 @@ import {
   Scissors,
   SlidersHorizontal,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { DoubleSide, Vector3 } from "three";
+import { DoubleSide, MathUtils, PerspectiveCamera, Vector3 } from "three";
 import type {
   BlockDefinition,
   NumericOpening,
@@ -569,6 +569,7 @@ export function RoomThreeScene({
   onSelectionChange,
 }: Props) {
   const controls = useRef<OrbitControlsImpl>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [labels, setLabels] = useState(true);
   const [fullScreen, setFullScreen] = useState(false);
   const [isolated, setIsolated] = useState(false);
@@ -628,35 +629,40 @@ export function RoomThreeScene({
         : width / 2;
     setCamera(0, unit.height * 0.52, interiorZ);
   };
-  const fit = () =>
-    setCamera(
-      modelSize * 1.45,
-      modelSize * 1.08,
-      unit.kind === "wall" ? modelSize * 1.65 : width + modelSize * 1.35,
-    );
+  const fit = useCallback(() => {
+    const orbit = controls.current;
+    if (!orbit) return;
+    const camera = orbit.object as PerspectiveCamera;
+    const nextTarget = new Vector3(0, unit.height / 2, unit.kind === "wall" ? 0 : width / 2);
+    const radius = Math.hypot(unit.length, unit.height, unit.kind === "wall" ? block.thicknessCm / 100 : width) / 2;
+    const verticalFov = MathUtils.degToRad(camera.fov);
+    const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * Math.max(camera.aspect, 0.1));
+    const distance = Math.max(modelSize * 1.2, (radius / Math.sin(Math.min(verticalFov, horizontalFov) / 2)) * 1.18);
+    const direction = new Vector3(1, 0.72, unit.kind === "wall" ? 1 : 1.2).normalize();
+    camera.position.copy(nextTarget).addScaledVector(direction, distance);
+    orbit.target.copy(nextTarget);
+    camera.near = 0.05;
+    camera.far = Math.max(100, modelSize * 20);
+    camera.updateProjectionMatrix();
+    orbit.update();
+  }, [block.thicknessCm, modelSize, unit.height, unit.kind, unit.length, width]);
   useEffect(() => {
     const orbit = controls.current;
     if (!orbit) return;
-    orbit.object.position.set(
-      modelSize * 1.45,
-      modelSize * 1.08,
-      unit.kind === "wall" ? modelSize * 1.65 : width + modelSize * 1.35,
-    );
-    orbit.target.set(0, unit.height / 2, unit.kind === "wall" ? 0 : width / 2);
-    orbit.object.near = 0.05;
-    orbit.object.far = Math.max(100, modelSize * 20);
-    orbit.object.updateProjectionMatrix();
-    orbit.update();
-  }, [
-    block.thicknessCm,
-    unit.height,
-    unit.id,
-    unit.kind,
-    unit.length,
-    unit.width,
-    modelSize,
-    width,
-  ]);
+    fit();
+  }, [fit, unit.id]);
+  useEffect(() => {
+    const resize = () => requestAnimationFrame(fit);
+    const observer = new ResizeObserver(resize);
+    if (containerRef.current) observer.observe(containerRef.current);
+    window.addEventListener("resize", resize);
+    window.addEventListener("orientationchange", resize);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", resize);
+      window.removeEventListener("orientationchange", resize);
+    };
+  }, [fit]);
   useEffect(() => {
     const listener = () => setFullScreen(Boolean(document.fullscreenElement));
     document.addEventListener("fullscreenchange", listener);
@@ -678,7 +684,8 @@ export function RoomThreeScene({
   return (
     <div
       id="three-canvas"
-      className="relative h-full min-h-[430px] overflow-hidden rounded-xl bg-slate-100"
+      ref={containerRef}
+      className="relative h-full min-h-0 overflow-hidden rounded-xl bg-slate-100"
     >
       <div className="absolute right-2 top-2 z-10" dir="rtl">
         <button type="button" onClick={() => setToolbarOpen((value) => !value)} aria-expanded={toolbarOpen} aria-label="3D controls" className="grid size-11 place-items-center rounded-xl bg-[var(--brand-navy)] text-[var(--brand-cream)] shadow-lg"><SlidersHorizontal size={19} /></button>
@@ -837,7 +844,7 @@ export function RoomThreeScene({
           ],
           fov: 42,
         }}
-        style={{ height: fullScreen ? "100dvh" : 430, touchAction: "none" }}
+        style={{ height: "100%", touchAction: "none" }}
         fallback={<p>WebGL بەردەست نییە؛ حیسابکردن بەردەوامە.</p>}
       >
         <Scene

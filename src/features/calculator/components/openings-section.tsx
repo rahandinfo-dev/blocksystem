@@ -10,6 +10,7 @@ import {
   isSillHeightValid,
 } from "@/features/calculator/lib/opening-placement";
 import type { OpeningInput } from "@/features/calculator/types";
+import { useI18n } from "@/lib/i18n";
 
 export interface OpeningWallOption {
   id: string;
@@ -72,7 +73,12 @@ export function OpeningsSection({
   wallOptions = [],
   lockedWallId,
 }: OpeningsSectionProps) {
-  const text = content[kind];
+  const { t } = useI18n();
+  const text = {
+    heading: t(`openings.${kind}`) || content[kind].heading,
+    add: t(kind === "door" ? "openings.addDoor" : kind === "window" ? "openings.addWindow" : kind === "other" ? "openings.addOther" : "openings.addDeduction"),
+    item: t(`openings.${kind}`),
+  };
   const supportsPlacement = kind === "door" || kind === "window";
 
   const wallFor = (opening: OpeningInput): OpeningWallOption | undefined =>
@@ -110,7 +116,7 @@ export function OpeningsSection({
         </button>
       </div>
       {openings.length === 0 ? (
-        <p className="mt-3 text-sm text-slate-500">هیچ {text.heading} زیاد نەکراوە.</p>
+        <p className="mt-3 text-sm text-slate-500">{t("openings.none", { label: text.heading })}</p>
       ) : null}
       <div className="mt-3 space-y-3">
         {openings.map((opening, index) => {
@@ -144,7 +150,7 @@ export function OpeningsSection({
                   type="button"
                   onClick={() => onRemove(opening.id)}
                   className="form-delete-button grid size-10 place-items-center rounded-lg text-slate-500 hover:bg-red-100 hover:text-red-700"
-                  aria-label={`سڕینەوەی ${text.item} ${index + 1}`}
+                  aria-label={`${t("common.delete")} ${text.item} ${index + 1}`}
                 >
                   <Trash2 size={17} />
                 </button>
@@ -155,7 +161,7 @@ export function OpeningsSection({
                     htmlFor={`${prefix}-${kind}-${opening.id}-name`}
                     className="form-label"
                   >
-                    ناو
+                    {t("common.name")}
                   </label>
                   <input
                     id={`${prefix}-${kind}-${opening.id}-name`}
@@ -169,7 +175,7 @@ export function OpeningsSection({
                 </div>
                 <LengthField
                   id={`${prefix}-${kind}-${opening.id}-width`}
-                  label="پانی"
+                  label={t("common.width")}
                   value={opening.width}
                   unit={opening.widthUnit}
                   onChange={(value) => syncDimension(opening, "width", value)}
@@ -178,7 +184,7 @@ export function OpeningsSection({
                 />
                 <LengthField
                   id={`${prefix}-${kind}-${opening.id}-height`}
-                  label="بەرزی"
+                  label={t("common.height")}
                   value={opening.height}
                   unit={opening.heightUnit}
                   onChange={(value) => syncDimension(opening, "height", value)}
@@ -187,7 +193,7 @@ export function OpeningsSection({
                 />
                 <NumberField
                   id={`${prefix}-${kind}-${opening.id}-quantity`}
-                  label="ژمارە"
+                  label={t("common.quantity")}
                   value={opening.quantity}
                   onChange={(value) => onChange(opening.id, "quantity", value)}
                   wholeNumber
@@ -197,7 +203,7 @@ export function OpeningsSection({
               {supportsPlacement ? (
                 <div className="opening-placement mt-4 rounded-xl border p-4">
                   <p className="mb-4 text-xs font-semibold leading-5 text-slate-600">
-                    شوێنی {text.item}: دووری لە سەرەتای دیوار بۆ لێواری چەپ. شوێنی بەتاڵ بە شێوەی خۆکار ڕێکدەخرێت.
+                    {t("openings.positionHelp")}
                   </p>
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-4">
                     {wallOptions.length > 1 ? (
@@ -206,7 +212,7 @@ export function OpeningsSection({
                           htmlFor={`${prefix}-${kind}-${opening.id}-wall`}
                           className="form-label"
                         >
-                          دیوار
+                          {t("common.wall")}
                         </label>
                         <AppSelect
                           data-select-kind="wall"
@@ -224,13 +230,13 @@ export function OpeningsSection({
                       </div>
                     ) : wall ? (
                       <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
-                        <span className="block text-xs font-semibold text-slate-500">دیوار</span>
+                        <span className="block text-xs font-semibold text-slate-500">{t("common.wall")}</span>
                         <span className="mt-1 block text-sm font-bold text-slate-800">{wall.name}</span>
                       </div>
                     ) : null}
                     <LengthField
                       id={`${prefix}-${kind}-${opening.id}-horizontal-position`}
-                      label="شوێنی ئاسۆیی"
+                      label={t("openings.position")}
                       value={opening.horizontalPosition}
                       unit={opening.horizontalPositionUnit}
                       onChange={(value) =>
@@ -250,7 +256,7 @@ export function OpeningsSection({
                     {kind === "window" ? (
                       <LengthField
                         id={`${prefix}-${kind}-${opening.id}-sill-height`}
-                        label="بەرزی سەرپەنجەرە"
+                        label={t("openings.sillHeight")}
                         value={opening.sillHeight}
                         unit={opening.sillHeightUnit}
                         onChange={(value) =>
@@ -269,7 +275,7 @@ export function OpeningsSection({
                       />
                     ) : (
                       <p className="form-helper self-end pb-1">
-                        دەرگا خۆکارانە لەسەر زەوی دادەنرێت.
+                        {t("openings.doorGround")}
                       </p>
                     )}
                   </div>

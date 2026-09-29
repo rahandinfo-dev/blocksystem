@@ -3,6 +3,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { LengthField } from "@/components/ui/length-field";
 import type { OpeningInput, WallInput } from "@/features/calculator/types";
 import { OpeningsSection, type OpeningWallOption } from "./openings-section";
+import { useI18n } from "@/lib/i18n";
 
 interface WallsEditorProps {
   walls: WallInput[];
@@ -31,19 +32,20 @@ function metres(value: string): number {
 }
 
 export function WallsEditor(props: WallsEditorProps) {
+  const { t } = useI18n();
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-slate-950">دیوارەکان</h2>
-          <p className="mt-1 text-sm text-slate-600">هەر دیوارێک بە جیاوازی زیاد بکە.</p>
+          <h2 className="text-xl font-bold text-slate-950">{t("walls.heading")}</h2>
+          <p className="mt-1 text-sm text-slate-600">{t("walls.description")}</p>
         </div>
         <button
           type="button"
           onClick={props.onAdd}
           className="form-add-button inline-flex min-h-11 shrink-0 items-center gap-1 rounded-lg border bg-white px-3 text-sm font-semibold"
         >
-          <Plus size={17} /> زیادکردنی دیوار
+          <Plus size={17} /> {t("walls.add")}
         </button>
       </div>
       <div className="mt-5 space-y-5">
@@ -63,14 +65,14 @@ export function WallsEditor(props: WallsEditorProps) {
                   disabled={props.walls.length === 1}
                   onClick={() => props.onRemove(wall.id)}
                   className="form-delete-button grid size-10 place-items-center rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-40"
-                  aria-label="سڕینەوەی دیوار"
+                  aria-label={t("walls.delete")}
                 >
                   <Trash2 size={18} />
                 </button>
               </div>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                 <div className="form-field">
-                  <label className="form-label">ناوی دیوار</label>
+                  <label className="form-label">{t("walls.name")}</label>
                   <input
                     value={wall.name}
                     onChange={(event) => props.onWallChange(wall.id, "name", event.target.value)}

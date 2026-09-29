@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { LanguageProvider } from "@/lib/i18n";
 
 import "./globals.css";
 
@@ -16,8 +17,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ckb" dir="rtl" className={nrt.variable}>
-      <body>{children}</body>
+    <html lang="ku" dir="rtl" className={nrt.variable} suppressHydrationWarning>
+      <body><LanguageProvider>{children}</LanguageProvider></body>
     </html>
   );
 }

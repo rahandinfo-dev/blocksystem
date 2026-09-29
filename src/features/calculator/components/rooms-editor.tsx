@@ -3,6 +3,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { LengthField } from "@/components/ui/length-field";
 import type { OpeningInput, RoomInput } from "@/features/calculator/types";
 import { OpeningsSection, type OpeningWallOption } from "./openings-section";
+import { useI18n } from "@/lib/i18n";
 
 interface RoomsEditorProps {
   rooms: RoomInput[];
@@ -55,6 +56,7 @@ function wallOptions(room: RoomInput): OpeningWallOption[] {
 }
 
 export function RoomsEditor(props: RoomsEditorProps) {
+  const { t } = useI18n();
   return (
     <section
       className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
@@ -62,15 +64,15 @@ export function RoomsEditor(props: RoomsEditorProps) {
     >
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 id="rooms-heading" className="text-xl font-bold text-slate-950">ژوورەکان</h2>
-          <p className="mt-1 text-sm text-slate-600">بۆ هەر ژوورێک قەبارە و کراوەکان دیاری بکە.</p>
+          <h2 id="rooms-heading" className="text-xl font-bold text-slate-950">{t("rooms.heading")}</h2>
+          <p className="mt-1 text-sm text-slate-600">{t("rooms.description")}</p>
         </div>
         <button
           type="button"
           onClick={props.onAdd}
           className="form-add-button inline-flex min-h-11 shrink-0 items-center gap-1 rounded-lg border bg-white px-3 text-sm font-semibold"
         >
-          <Plus size={17} /> زیادکردنی ژوور
+          <Plus size={17} /> {t("rooms.add")}
         </button>
       </div>
       <div className="mt-5 space-y-5">
@@ -85,7 +87,7 @@ export function RoomsEditor(props: RoomsEditorProps) {
                   type="button"
                   disabled={props.rooms.length === 1}
                   onClick={() => props.onRemove(room.id)}
-                  aria-label="سڕینەوەی ژوور"
+                  aria-label={t("rooms.delete")}
                   className="form-delete-button grid size-10 place-items-center rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-40"
                 >
                   <Trash2 size={18} />
@@ -93,7 +95,7 @@ export function RoomsEditor(props: RoomsEditorProps) {
               </div>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                 <div className="form-field">
-                  <label htmlFor={`room-${room.id}-name`} className="form-label">ناوی ژوور</label>
+                  <label htmlFor={`room-${room.id}-name`} className="form-label">{t("rooms.name")}</label>
                   <input
                     id={`room-${room.id}-name`}
                     value={room.name}

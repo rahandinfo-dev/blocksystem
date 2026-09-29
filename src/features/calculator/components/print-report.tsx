@@ -15,6 +15,7 @@ import type {
   CalculationResult,
   CalculatorProjectData,
 } from "@/features/calculator/types";
+import { useI18n } from "@/lib/i18n";
 
 interface Props {
   data: CalculatorProjectData;
@@ -41,6 +42,7 @@ function dailyReference(date: Date): string {
 }
 
 export function PrintReport({ data, block, result }: Props) {
+  const { t } = useI18n();
   const scopes = useMemo(() => getReceiptScopes(data), [data]);
   const [scopeId, setScopeId] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -50,7 +52,7 @@ export function PrintReport({ data, block, result }: Props) {
   const generate = async () => {
     if (!result || !selectedScope || isGenerating) return;
     setIsGenerating(true);
-    setMessage("");
+    setMessage(t("common.loading"));
 
     try {
       const generatedAt = new Date();

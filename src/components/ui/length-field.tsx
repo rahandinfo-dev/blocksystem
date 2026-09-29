@@ -3,6 +3,7 @@
 import type { LengthUnit } from "@/lib/units";
 import { convertLength } from "@/lib/units";
 import { AppSelect } from "./app-select";
+import { useI18n } from "@/lib/i18n";
 
 interface LengthFieldProps {
   id: string;
@@ -35,6 +36,7 @@ export function LengthField({
   onUnitChange,
   invalid = false,
 }: LengthFieldProps) {
+  const { t } = useI18n();
   const update = (raw: string) => {
     const normalized = raw.replace(/,/g, "");
     if (!/^\d*(\.\d*)?$/.test(normalized)) return;
@@ -62,8 +64,7 @@ export function LengthField({
         />
         <AppSelect
           data-select-kind="unit"
-          dir="rtl"
-          aria-label={`${label} یەکە`}
+          aria-label={`${label} ${t("common.name")}`}
           value={unit}
           onChange={(event) => onUnitChange(event.target.value as LengthUnit)}
           className="h-[3.25rem] w-full rounded-xl px-3 text-sm"
@@ -73,7 +74,7 @@ export function LengthField({
           <option value="mm">{labels.mm}</option>
         </AppSelect>
       </div>
-      {invalid ? <p className="form-helper text-red-700">تکایە بەهایەکی دروست بنووسە.</p> : null}
+      {invalid ? <p className="form-helper text-red-700">{t("validation.value")}</p> : null}
     </div>
   );
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n";
+
 interface NumberFieldProps {
   id: string;
   label: string;
@@ -29,6 +31,7 @@ export function NumberField({
   wholeNumber = false,
   invalid = false,
 }: NumberFieldProps) {
+  const { t } = useI18n();
   const handleChange = (nextValue: string) => {
     const normalized = normalizeNumber(nextValue);
     const pattern = wholeNumber ? /^\d*$/ : /^\d*(\.\d*)?$/;
@@ -55,7 +58,7 @@ export function NumberField({
           </span>
         ) : null}
       </div>
-      {invalid ? <p className="form-helper text-red-700">تکایە نرخێکی دروست بنووسە.</p> : null}
+      {invalid ? <p className="form-helper text-red-700">{t("validation.number")}</p> : null}
     </div>
   );
 }

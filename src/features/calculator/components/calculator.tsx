@@ -33,16 +33,17 @@ import { RoomsEditor } from "./rooms-editor";
 import { SavedProjects } from "./saved-projects";
 import { WallPreview } from "./wall-preview";
 import { WallsEditor } from "./walls-editor";
+import { useI18n } from "@/lib/i18n";
 
-const errorMessages: Record<CalculationErrorCode, string> = {
-  "invalid-room": "تکایە درێژی، پانی و بەرزی ژوور بنووسە.",
-  "invalid-wall": "تکایە درێژی و بەرزی دیوار بنووسە.",
-  "invalid-opening": "قەبارە و ژمارەی کراوەکان دروست نییە.",
-  "openings-too-large": "ڕووبەری کراوەکان لە دیوار گەورەترە.",
-  "invalid-block": "قەبارەی بلۆک دروست نییە.",
-  "invalid-waste": "ڕێژەی زیادە دروست نییە.",
-  "invalid-price": "نرخێکی دروست بنووسە.",
-  "invalid-mortar": "نرخی مۆرتەر دروست نییە.",
+const errorMessageKeys: Record<CalculationErrorCode, string> = {
+  "invalid-room": "errors.invalidRoom",
+  "invalid-wall": "errors.invalidWall",
+  "invalid-opening": "errors.invalidOpening",
+  "openings-too-large": "errors.openingsTooLarge",
+  "invalid-block": "errors.invalidBlock",
+  "invalid-waste": "errors.invalidWaste",
+  "invalid-price": "errors.invalidPrice",
+  "invalid-mortar": "errors.invalidMortar",
 };
 function numericOpenings(openings: OpeningInput[]) {
   return openings.map((opening) => ({
@@ -115,6 +116,7 @@ function normalizeRoomOpeningCollisions(room: RoomInput): RoomInput {
 }
 
 export function Calculator() {
+  const { t } = useI18n();
   const [data, setRawData] = useState<CalculatorProjectData>(createDefaultProject);
   const [past, setPast] = useState<CalculatorProjectData[]>([]);
   const [future, setFuture] = useState<CalculatorProjectData[]>([]);
@@ -248,7 +250,7 @@ export function Calculator() {
     hasCalculated && calculation.isValid ? calculation.result : undefined;
   const error =
     hasCalculated && !calculation.isValid
-      ? errorMessages[calculation.error]
+      ? t(errorMessageKeys[calculation.error])
       : undefined;
   const updateRoom = (
     id: string,

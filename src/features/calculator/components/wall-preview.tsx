@@ -113,12 +113,12 @@ export function WallPreview({ units, block }: Props) {
       </section>
       {open ? (
         <div
-          className="three-workspace fixed inset-0 z-[70] flex min-h-[100dvh] flex-col bg-slate-950 p-3 text-white sm:p-5"
+          className="three-workspace fixed inset-0 z-[70] flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-slate-950 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] text-white sm:p-5"
           role="dialog"
           aria-modal="true"
           aria-label="پێشبینینی تەواوی 3D"
         >
-          <header className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <header className="mb-3 shrink-0 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold">پێشبینینی تەواوی 3D</h2>
               <p className="text-sm text-slate-300">
@@ -147,7 +147,7 @@ export function WallPreview({ units, block }: Props) {
               </button>
             </div>
           </header>
-          <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(0,1fr)_19rem]">
+          <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] gap-3 lg:grid-cols-[minmax(0,1fr)_19rem] lg:grid-rows-1">
             <div className="min-h-0 overflow-hidden rounded-2xl border border-slate-700 bg-slate-100">
               <RoomThreeScene
                 unit={active}
@@ -156,7 +156,7 @@ export function WallPreview({ units, block }: Props) {
                 onSelectionChange={setSelection}
               />
             </div>
-            <aside className="rounded-2xl bg-slate-900 p-4 text-sm shadow-lg lg:overflow-y-auto">
+            <aside className="max-h-[28svh] overflow-y-auto rounded-2xl bg-slate-900 p-4 text-sm shadow-lg lg:max-h-none">
               <h3 className="text-lg font-bold text-amber-300">
                 {openingLabel(selection.type)}
               </h3>

@@ -4,9 +4,315 @@ import { useState } from "react";
 import { BlockDimensionField } from "@/components/ui/block-dimension-field";
 import { CurrencyField } from "@/components/ui/currency-field";
 import { NumberField } from "@/components/ui/number-field";
-import { currencyOptions } from "@/lib/currency";
-import { areaUnits, convertArea, convertLength, convertVolume, lengthUnits, volumeUnits, type AreaUnit, type LengthUnit, type VolumeUnit } from "@/lib/units";
 import type { CalculatorSettings } from "@/features/calculator/types";
-interface Props { settings: CalculatorSettings; onChange: (next: CalculatorSettings) => void; showValidation: boolean; }
-export function CalculationOptions({ settings, onChange, showValidation }: Props) { const update = (patch: Partial<CalculatorSettings>) => onChange({ ...settings, ...patch }); const currencyLabel = settings.currency === "USD" ? "USD" : "دینار"; return <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><h2 className="text-xl font-bold text-slate-950">ڕێکخستنەکانی حیساب</h2><div className="mt-5 grid gap-6 lg:grid-cols-2"><div><label className="block font-bold">ڕێژەی زیادە بۆ شکان و زیان</label><select value={settings.wastePreset} onChange={(event) => update({ wastePreset: event.target.value as CalculatorSettings["wastePreset"] })} className="mt-2 h-12 w-full rounded-xl border border-slate-300 bg-white px-3"><option value="0">٠٪</option><option value="5">٥٪</option><option value="10">١٠٪</option><option value="custom">تایبەت</option></select>{settings.wastePreset === "custom" ? <div className="mt-3"><NumberField id="custom-waste" label="ڕێژەی تایبەت" value={settings.customWastePercentage} onChange={(value) => update({ customWastePercentage: value })} unit="٪" /></div> : null}</div><div><div className="flex items-center gap-2"><Coins size={19} className="text-amber-700" /><h3 className="font-bold">پارە و نرخ</h3></div><label className="mt-2 mb-2 block text-sm font-semibold">دراو</label><select value={settings.currency} onChange={(event) => update({ currency: event.target.value as CalculatorSettings["currency"] })} className="h-12 w-full rounded-xl border border-slate-300 bg-white px-3">{currencyOptions.map((currency) => <option key={currency.value} value={currency.value}>{currency.label}</option>)}</select><div className="mt-3"><CurrencyField id="unit-price" label="نرخی یەک بلۆک" value={settings.unitPrice} onChange={(value) => update({ unitPrice: value })} currencyLabel={currencyLabel} invalid={showValidation && settings.unitPrice !== "" && Number(settings.unitPrice) < 0} /></div></div></div>{settings.currency === "USD" ? <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4"><h3 className="font-bold">ڕێژەی گۆڕینی دەستی</h3><p className="mt-1 text-sm">هیچ نرخێک بە خۆکار وەردەناگیرێت.</p><div className="mt-3 grid gap-3 sm:grid-cols-3"><CurrencyField id="exchange-rate" label="١ USD بە دینار" value={settings.exchangeRateIqdPerUsd} onChange={(value) => update({ exchangeRateIqdPerUsd: value })} currencyLabel="IQD" /><div><label className="mb-2 block text-sm font-semibold">سەرچاوە</label><input value={settings.exchangeRateSource} onChange={(event) => update({ exchangeRateSource: event.target.value })} className="h-12 w-full rounded-xl border border-slate-300 px-3" /></div><div><label className="mb-2 block text-sm font-semibold">بەروار</label><input type="date" value={settings.exchangeRateUpdatedAt} onChange={(event) => update({ exchangeRateUpdatedAt: event.target.value })} className="h-12 w-full rounded-xl border border-slate-300 px-3" /></div></div></div> : null}<details className="mt-6 border-t border-slate-200 pt-5"><summary className="cursor-pointer font-bold">نرخە زیادەکان</summary><div className="mt-4 grid gap-3 sm:grid-cols-2"><CurrencyField id="transport" label="نرخی گواستنەوە" value={settings.transportCost} onChange={(value) => update({ transportCost: value })} currencyLabel={currencyLabel} /><CurrencyField id="labor" label="نرخی کرێکار" value={settings.laborCost} onChange={(value) => update({ laborCost: value })} currencyLabel={currencyLabel} /><CurrencyField id="mortar-cost" label="نرخی مۆرتەر" value={settings.mortarCost} onChange={(value) => update({ mortarCost: value })} currencyLabel={currencyLabel} /><CurrencyField id="other-cost" label="نرخی تر" value={settings.otherCost} onChange={(value) => update({ otherCost: value })} currencyLabel={currencyLabel} /></div></details><details className="mt-6 border-t border-slate-200 pt-5"><summary className="cursor-pointer font-bold">مۆرتەر و پەیوەندی</summary><div className="mt-4 grid gap-3 sm:grid-cols-2"><label className="inline-flex items-center gap-2"><input type="checkbox" checked={settings.mortarEnabled} onChange={(event) => update({ mortarEnabled: event.target.checked })} /> خەمڵاندنی مۆرتەر</label>{settings.mortarEnabled ? <NumberField id="mortar-consumption" label="بەکارهێنانی مۆرتەر (m³/m²)" value={settings.mortarConsumptionM3PerM2} onChange={(value) => update({ mortarConsumptionM3PerM2: value })} /> : null}<label className="inline-flex items-center gap-2"><input type="checkbox" checked={settings.mortarJointEnabled} onChange={(event) => update({ mortarJointEnabled: event.target.checked })} /> پەیوەندی مۆرتەر</label>{settings.mortarJointEnabled ? <BlockDimensionField id="joint" label="پانی پەیوەندی" valueCm={Number(settings.mortarJointThicknessCm || 0)} unit={settings.mortarJointUnit} onChange={(value) => update({ mortarJointThicknessCm: String(value) })} onUnitChange={(unit) => update({ mortarJointUnit: unit })} /> : null}</div></details><UnitConverter /></section>; }
-function UnitConverter() { const [value, setValue] = useState("1"); const [kind, setKind] = useState<"length" | "area" | "volume">("length"); const [fromLength, setFromLength] = useState<LengthUnit>("m"); const [toLength, setToLength] = useState<LengthUnit>("cm"); const [fromArea, setFromArea] = useState<AreaUnit>("m²"); const [toArea, setToArea] = useState<AreaUnit>("cm²"); const [fromVolume, setFromVolume] = useState<VolumeUnit>("m³"); const [toVolume, setToVolume] = useState<VolumeUnit>("cm³"); const result = kind === "length" ? convertLength(Number(value), fromLength, toLength) : kind === "area" ? convertArea(Number(value), fromArea, toArea) : convertVolume(Number(value), fromVolume, toVolume); const units = kind === "length" ? lengthUnits : kind === "area" ? areaUnits : volumeUnits; const from = kind === "length" ? fromLength : kind === "area" ? fromArea : fromVolume; const to = kind === "length" ? toLength : kind === "area" ? toArea : toVolume; const setFrom = (next: string) => { if (kind === "length") setFromLength(next as LengthUnit); else if (kind === "area") setFromArea(next as AreaUnit); else setFromVolume(next as VolumeUnit); }; const setTo = (next: string) => { if (kind === "length") setToLength(next as LengthUnit); else if (kind === "area") setToArea(next as AreaUnit); else setToVolume(next as VolumeUnit); }; return <details className="mt-6 border-t border-slate-200 pt-5"><summary className="cursor-pointer font-bold">گۆڕینی یەکەکان</summary><div className="mt-3 grid gap-3 sm:grid-cols-5"><select value={kind} onChange={(event) => setKind(event.target.value as typeof kind)} className="h-12 rounded-xl border border-slate-300 px-3"><option value="length">درێژی</option><option value="area">ڕووبەر</option><option value="volume">قەبارە</option></select><NumberField id="converter-value" label="بڕ" value={value} onChange={setValue} /><select value={from} onChange={(event) => setFrom(event.target.value)} className="h-12 self-end rounded-xl border border-slate-300 px-3">{units.map((unit) => <option key={unit}>{unit}</option>)}</select><select value={to} onChange={(event) => setTo(event.target.value)} className="h-12 self-end rounded-xl border border-slate-300 px-3">{units.map((unit) => <option key={unit}>{unit}</option>)}</select><output className="self-end rounded-xl bg-slate-100 px-3 py-3 text-center font-bold" dir="ltr">{Number.isFinite(result) ? result : "—"} {to}</output></div></details>; }
+import { useI18n } from "@/lib/i18n";
+import { currencyOptions } from "@/lib/currency";
+import {
+  areaUnits,
+  convertArea,
+  convertLength,
+  convertVolume,
+  lengthUnits,
+  volumeUnits,
+  type AreaUnit,
+  type LengthUnit,
+  type VolumeUnit,
+} from "@/lib/units";
+
+interface Props {
+  settings: CalculatorSettings;
+  onChange: (next: CalculatorSettings) => void;
+  showValidation: boolean;
+}
+export function CalculationOptions({
+  settings,
+  onChange,
+  showValidation,
+}: Props) {
+  const { t } = useI18n();
+  const update = (patch: Partial<CalculatorSettings>) =>
+    onChange({ ...settings, ...patch });
+  const currencyLabel = settings.currency === "USD" ? "USD" : "IQD";
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <h2 className="text-xl font-bold text-slate-950">
+        {t("options.heading")}
+      </h2>
+      <div className="mt-5 grid gap-6 lg:grid-cols-2">
+        <div>
+          <label className="block font-bold">{t("options.waste")}</label>
+          <select
+            value={settings.wastePreset}
+            onChange={(event) =>
+              update({
+                wastePreset: event.target
+                  .value as CalculatorSettings["wastePreset"],
+              })
+            }
+            className="mt-2 h-12 w-full rounded-xl border border-slate-300 bg-white px-3"
+          >
+            <option value="0">0%</option>
+            <option value="5">5%</option>
+            <option value="10">10%</option>
+            <option value="custom">{t("options.customWaste")}</option>
+          </select>
+          {settings.wastePreset === "custom" ? (
+            <div className="mt-3">
+              <NumberField
+                id="custom-waste"
+                label={t("options.customWaste")}
+                value={settings.customWastePercentage}
+                onChange={(value) => update({ customWastePercentage: value })}
+                unit="%"
+              />
+            </div>
+          ) : null}
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <Coins size={19} className="text-amber-700" />
+            <h3 className="font-bold">{t("options.cost")}</h3>
+          </div>
+          <label className="mb-2 mt-2 block text-sm font-semibold">
+            {t("common.currency")}
+          </label>
+          <select
+            value={settings.currency}
+            onChange={(event) =>
+              update({
+                currency: event.target.value as CalculatorSettings["currency"],
+              })
+            }
+            className="h-12 w-full rounded-xl border border-slate-300 bg-white px-3"
+          >
+            {currencyOptions.map((currency) => (
+              <option key={currency.value} value={currency.value}>
+                {currency.label}
+              </option>
+            ))}
+          </select>
+          <div className="mt-3">
+            <CurrencyField
+              id="unit-price"
+              label={t("options.unitPrice")}
+              value={settings.unitPrice}
+              onChange={(value) => update({ unitPrice: value })}
+              currencyLabel={currencyLabel}
+              invalid={
+                showValidation &&
+                settings.unitPrice !== "" &&
+                Number(settings.unitPrice) < 0
+              }
+            />
+          </div>
+        </div>
+      </div>
+      {settings.currency === "USD" ? (
+        <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <h3 className="font-bold">{t("options.exchange")}</h3>
+          <p className="mt-1 text-sm">{t("options.exchangeHint")}</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <CurrencyField
+              id="exchange-rate"
+              label={t("options.usdIqd")}
+              value={settings.exchangeRateIqdPerUsd}
+              onChange={(value) => update({ exchangeRateIqdPerUsd: value })}
+              currencyLabel="IQD"
+            />
+            <div>
+              <label className="mb-2 block text-sm font-semibold">
+                {t("common.source")}
+              </label>
+              <input
+                value={settings.exchangeRateSource}
+                onChange={(event) =>
+                  update({ exchangeRateSource: event.target.value })
+                }
+                className="h-12 w-full rounded-xl border border-slate-300 px-3"
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold">
+                {t("common.date")}
+              </label>
+              <input
+                type="date"
+                value={settings.exchangeRateUpdatedAt}
+                onChange={(event) =>
+                  update({ exchangeRateUpdatedAt: event.target.value })
+                }
+                className="h-12 w-full rounded-xl border border-slate-300 px-3"
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
+      <details className="mt-6 border-t border-slate-200 pt-5">
+        <summary className="cursor-pointer font-bold">
+          {t("options.extras")}
+        </summary>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <CurrencyField
+            id="transport"
+            label={t("options.transport")}
+            value={settings.transportCost}
+            onChange={(value) => update({ transportCost: value })}
+            currencyLabel={currencyLabel}
+          />
+          <CurrencyField
+            id="labor"
+            label={t("options.labour")}
+            value={settings.laborCost}
+            onChange={(value) => update({ laborCost: value })}
+            currencyLabel={currencyLabel}
+          />
+          <CurrencyField
+            id="mortar-cost"
+            label={t("options.mortarCost")}
+            value={settings.mortarCost}
+            onChange={(value) => update({ mortarCost: value })}
+            currencyLabel={currencyLabel}
+          />
+          <CurrencyField
+            id="other-cost"
+            label={t("options.otherCost")}
+            value={settings.otherCost}
+            onChange={(value) => update({ otherCost: value })}
+            currencyLabel={currencyLabel}
+          />
+        </div>
+      </details>
+      <details className="mt-6 border-t border-slate-200 pt-5">
+        <summary className="cursor-pointer font-bold">
+          {t("options.mortar")}
+        </summary>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="inline-flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={settings.mortarEnabled}
+              onChange={(event) =>
+                update({ mortarEnabled: event.target.checked })
+              }
+            />{" "}
+            {t("options.estimateMortar")}
+          </label>
+          {settings.mortarEnabled ? (
+            <NumberField
+              id="mortar-consumption"
+              label={t("options.mortarConsumption")}
+              value={settings.mortarConsumptionM3PerM2}
+              onChange={(value) => update({ mortarConsumptionM3PerM2: value })}
+            />
+          ) : null}
+          <label className="inline-flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={settings.mortarJointEnabled}
+              onChange={(event) =>
+                update({ mortarJointEnabled: event.target.checked })
+              }
+            />{" "}
+            {t("options.mortarJoint")}
+          </label>
+          {settings.mortarJointEnabled ? (
+            <BlockDimensionField
+              id="joint"
+              label={t("options.jointWidth")}
+              valueCm={Number(settings.mortarJointThicknessCm || 0)}
+              unit={settings.mortarJointUnit}
+              onChange={(value) =>
+                update({ mortarJointThicknessCm: String(value) })
+              }
+              onUnitChange={(unit) => update({ mortarJointUnit: unit })}
+            />
+          ) : null}
+        </div>
+      </details>
+      <UnitConverter />
+    </section>
+  );
+}
+function UnitConverter() {
+  const { t, formatNumber } = useI18n();
+  const [value, setValue] = useState("1");
+  const [kind, setKind] = useState<"length" | "area" | "volume">("length");
+  const [fromLength, setFromLength] = useState<LengthUnit>("m");
+  const [toLength, setToLength] = useState<LengthUnit>("cm");
+  const [fromArea, setFromArea] = useState<AreaUnit>("m²");
+  const [toArea, setToArea] = useState<AreaUnit>("cm²");
+  const [fromVolume, setFromVolume] = useState<VolumeUnit>("m³");
+  const [toVolume, setToVolume] = useState<VolumeUnit>("cm³");
+  const result =
+    kind === "length"
+      ? convertLength(Number(value), fromLength, toLength)
+      : kind === "area"
+        ? convertArea(Number(value), fromArea, toArea)
+        : convertVolume(Number(value), fromVolume, toVolume);
+  const units =
+    kind === "length" ? lengthUnits : kind === "area" ? areaUnits : volumeUnits;
+  const from =
+    kind === "length" ? fromLength : kind === "area" ? fromArea : fromVolume;
+  const to = kind === "length" ? toLength : kind === "area" ? toArea : toVolume;
+  const setFrom = (next: string) => {
+    if (kind === "length") setFromLength(next as LengthUnit);
+    else if (kind === "area") setFromArea(next as AreaUnit);
+    else setFromVolume(next as VolumeUnit);
+  };
+  const setTo = (next: string) => {
+    if (kind === "length") setToLength(next as LengthUnit);
+    else if (kind === "area") setToArea(next as AreaUnit);
+    else setToVolume(next as VolumeUnit);
+  };
+  return (
+    <details className="mt-6 border-t border-slate-200 pt-5">
+      <summary className="cursor-pointer font-bold">
+        {t("converter.heading")}
+      </summary>
+      <div className="mt-3 grid gap-3 sm:grid-cols-5">
+        <select
+          value={kind}
+          onChange={(event) => setKind(event.target.value as typeof kind)}
+          className="h-12 rounded-xl border border-slate-300 px-3"
+        >
+          <option value="length">{t("converter.length")}</option>
+          <option value="area">{t("converter.area")}</option>
+          <option value="volume">{t("converter.volume")}</option>
+        </select>
+        <NumberField
+          id="converter-value"
+          label={t("converter.value")}
+          value={value}
+          onChange={setValue}
+        />
+        <select
+          value={from}
+          onChange={(event) => setFrom(event.target.value)}
+          className="h-12 self-end rounded-xl border border-slate-300 px-3"
+        >
+          {units.map((unit) => (
+            <option key={unit}>{unit}</option>
+          ))}
+        </select>
+        <select
+          value={to}
+          onChange={(event) => setTo(event.target.value)}
+          className="h-12 self-end rounded-xl border border-slate-300 px-3"
+        >
+          {units.map((unit) => (
+            <option key={unit}>{unit}</option>
+          ))}
+        </select>
+        <output
+          className="self-end rounded-xl bg-slate-100 px-3 py-3 text-center font-bold"
+          dir="ltr"
+        >
+          {Number.isFinite(result)
+            ? formatNumber(result, { maximumFractionDigits: 6 })
+            : "—"}{" "}
+          {to}
+        </output>
+      </div>
+    </details>
+  );
+}

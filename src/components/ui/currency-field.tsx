@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { formatMoneyInput } from "@/lib/currency";
+import { useI18n } from "@/lib/i18n";
 
 interface CurrencyFieldProps {
   id: string;
@@ -21,6 +22,7 @@ export function CurrencyField({
   currencyLabel,
   invalid = false,
 }: CurrencyFieldProps) {
+  const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const change = (next: string, position: number | null) => {
@@ -65,7 +67,7 @@ export function CurrencyField({
           {currencyLabel}
         </span>
       </div>
-      {invalid ? <p className="form-helper text-red-700">تکایە نرخێکی دروست بنووسە.</p> : null}
+      {invalid ? <p className="form-helper text-red-700">{t("validation.number")}</p> : null}
     </div>
   );
 }
