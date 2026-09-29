@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { previewMessages } from "@/lib/preview-messages";
 
 export const languages = ["ku", "ar", "en-GB"] as const;
 export type Language = (typeof languages)[number];
@@ -233,7 +234,11 @@ const ar: Messages = {
   "validation.number": "يرجى إدخال رقم صالح.", "validation.value": "يرجى إدخال قيمة صالحة.", "errors.invalidRoom": "أدخل طول الغرفة وعرضها وارتفاعها بشكل صحيح.", "errors.invalidWall": "أدخل طول الجدار وارتفاعه بشكل صحيح.", "errors.invalidOpening": "أبعاد الفتحات أو كميتها غير صحيحة.", "errors.openingsTooLarge": "مساحة الفتحات أكبر من مساحة الجدار.", "errors.invalidBlock": "أبعاد البلوك غير صحيحة.", "errors.invalidWaste": "نسبة الهدر غير صحيحة.", "errors.invalidPrice": "أدخل سعراً صالحاً.", "errors.invalidMortar": "قيمة المونة غير صحيحة.", "export.pdfFailed": "تعذر إنشاء ملف PDF.", "about.title": "حول التطبيق", "about.description": "أداة احترافية لحساب متطلبات بناء الغرف والجدران بسرعة ودقة.", "company.title": "من نحن", "contact.title": "تواصل مع RekApps", "help.title": "المساعدة والإرشاد",
 };
 
-const dictionaries: Record<Language, Messages> = { ku, ar, "en-GB": en };
+const dictionaries: Record<Language, Messages> = {
+  ku: { ...ku, ...previewMessages.ku },
+  ar: { ...ar, ...previewMessages.ar },
+  "en-GB": { ...en, ...previewMessages["en-GB"] },
+};
 
 function interpolate(message: string, values?: MessageValues) {
   if (!values) return message;

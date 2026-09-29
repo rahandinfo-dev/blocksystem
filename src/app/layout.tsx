@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { LanguageProvider } from "@/lib/i18n";
 
@@ -14,6 +14,8 @@ export const metadata: Metadata = {
   title: "سیستەمی بلۆکی براندی ڕێک",
   description: "حیسابکردنی ژمارەی بلۆک و تێچووی بیناسازی بە شێوەی خێرا و ورد",
 };
+
+export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (

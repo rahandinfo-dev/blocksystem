@@ -1,7 +1,7 @@
 "use client";
 
 import { Edges, OrbitControls, Text } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
   Expand,
   Eye,
@@ -14,15 +14,17 @@ import {
   Scissors,
   SlidersHorizontal,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { DoubleSide, MathUtils, PerspectiveCamera, Vector3 } from "three";
+import { Box3, DoubleSide, Group, PerspectiveCamera, TOUCH, Vector3 } from "three";
 import type {
   BlockDefinition,
   NumericOpening,
   NumericUnit,
 } from "@/features/calculator/types";
 import { resolveOpeningIntervals } from "@/features/calculator/lib/opening-placement";
+import { perspectiveBoundsFit } from "@/features/calculator/lib/camera-fit";
+import { useI18n } from "@/lib/i18n";
 import {
   createWallSolidSegments,
   type WallOpeningRect,
@@ -116,12 +118,14 @@ function Opening({
   showMeasurements,
   selected,
   onSelect,
+  onMeasurementsReady,
 }: {
   item: OpeningModel;
   thickness: number;
   showMeasurements: boolean;
   selected: boolean;
   onSelect: () => void;
+  onMeasurementsReady: () => void;
 }) {
   const { opening, kind } = item;
   if (opening.width <= 0 || opening.height <= 0) return null;
@@ -221,7 +225,10 @@ function Opening({
         ))
       ) : null}
       {showMeasurements ? (
+        <Suspense fallback={null}>
         <Text
+          font="/fonts/NRT-Reg.ttf"
+          onSync={onMeasurementsReady}
           position={[0, opening.height / 2 + 0.14, measurementZ]}
           fontSize={Math.max(0.08, Math.min(opening.width, opening.height) / 7)}
           color="#0F2053"
@@ -229,6 +236,7 @@ function Opening({
         >
           {`${opening.width.toFixed(2)} × ${opening.height.toFixed(2)} m`}
         </Text>
+        </Suspense>
       ) : null}
     </group>
   );
@@ -311,6 +319,73 @@ function WallSurface({
   );
 }
 
+function fitRenderedModel(group: Group, orbit: OrbitControlsImpl, width: number, height: number, singleWall: boolean) {
+    const camera = orbit.object;
+    if (!(camera instanceof PerspectiveCamera) || width <= 0 || height <= 0) return false;
+    // This group contains the actual walls, frames, openings and measurements.
+    // The decorative ground is deliberately outside its measured bounds.
+    group.updateWorldMatrix(true, true);
+    const bounds = new Box3().setFromObject(group);
+    if (bounds.isEmpty() || !Number.isFinite(bounds.min.lengthSq() + bounds.max.lengthSq())) return false;
+    camera.aspect = width / height;
+    const fitted = perspectiveBoundsFit(
+      bounds,
+      camera.fov,
+      camera.aspect,
+      new Vector3(1, 0.72, singleWall ? 1 : 1.2),
+    );
+    // Clear a gesture's remaining damping before placing the fitted view.
+    const damping = orbit.enableDamping;
+    orbit.enableDamping = false;
+    orbit.update();
+    orbit.enableDamping = damping;
+    camera.position.copy(fitted.position);
+    camera.near = fitted.near;
+    camera.far = fitted.far;
+    camera.updateProjectionMatrix();
+    orbit.target.copy(fitted.target);
+    orbit.minDistance = fitted.minDistance;
+    orbit.maxDistance = fitted.maxDistance;
+    orbit.update();
+    return true;
+}
+
+function FitRenderedModel({
+  model: modelRef,
+  controls: controlsRef,
+  fitView: fitViewRef,
+  geometryKey,
+  singleWall,
+}: {
+  model: React.RefObject<Group | null>;
+  controls: React.RefObject<OrbitControlsImpl | null>;
+  fitView: React.RefObject<(() => void) | null>;
+  geometryKey: string;
+  singleWall: boolean;
+}) {
+  const size = useThree((state) => state.size);
+  const lastFit = useRef("");
+  const requested = useRef(true);
+
+  useEffect(() => {
+    fitViewRef.current = () => { requested.current = true; };
+    return () => { fitViewRef.current = null; };
+  }, [fitViewRef]);
+
+  useFrame(() => {
+    const nextFit = `${size.width}:${size.height}:${geometryKey}`;
+    // R3F owns canvas observation and renderer sizing. Fit in its frame
+    // lifecycle, when the rendered group and OrbitControls actually exist.
+    const model = modelRef.current;
+    const orbit = controlsRef.current;
+    if ((requested.current || lastFit.current !== nextFit) && model && orbit && fitRenderedModel(model, orbit, size.width, size.height, singleWall)) {
+      lastFit.current = nextFit;
+      requested.current = false;
+    }
+  });
+  return null;
+}
+
 function Scene({
   unit,
   block,
@@ -320,6 +395,7 @@ function Scene({
   isolated,
   cutaway,
   autoRotate,
+  fitView,
   choose,
 }: {
   unit: NumericUnit;
@@ -330,8 +406,10 @@ function Scene({
   isolated: boolean;
   cutaway: boolean;
   autoRotate: boolean;
+  fitView: React.RefObject<(() => void) | null>;
   choose: (selection: PreviewSelection) => void;
 }) {
+  const model = useRef<Group>(null);
   const length = unit.length;
   const width =
     unit.width ?? Math.max(unit.length * 0.25, (block.thicknessCm / 100) * 2);
@@ -442,6 +520,15 @@ function Scene({
       : cutaway && id === "back"
         ? 0.16
         : 1;
+  // Values, rather than object identities, keep ordinary selection/language
+  // rerenders from interrupting an orbit or an interior camera preset.
+  const geometryKey = JSON.stringify([
+    unit.id, unit.kind, length, width, height, thickness, labels,
+    openings.map(({ id, wallId, x, bottom, opening }) => [
+      id, wallId, x, bottom, opening.width, opening.height,
+    ]),
+  ]);
+  const measurementsReady = useCallback(() => fitView.current?.(), [fitView]);
   return (
     <>
       <ambientLight intensity={1.35} />
@@ -456,6 +543,7 @@ function Scene({
         />
         <meshStandardMaterial color="#d9e0e5" />
       </mesh>
+      <group ref={model} name="preview-model">
       <WallSurface
         id="front"
         length={transforms.front.length}
@@ -515,6 +603,7 @@ function Scene({
             thickness={thickness}
             showMeasurements={labels}
             selected={selected.type === item.kind && selected.id === item.id}
+            onMeasurementsReady={measurementsReady}
             onSelect={() =>
               choose({
                 type: item.kind,
@@ -527,36 +616,52 @@ function Scene({
         </group>
       ))}
       {labels ? (
-        <>
+        <Suspense fallback={null}>
           <Text
+            font="/fonts/NRT-Reg.ttf"
+            onSync={measurementsReady}
             position={[0, height + 0.2, 0]}
             fontSize={Math.max(0.12, length / 34)}
             color="#172033"
           >{`${length.toFixed(2)} m`}</Text>
           {!singleWall ? (
             <Text
+              font="/fonts/NRT-Reg.ttf"
+              onSync={measurementsReady}
               position={[length / 2 + 0.2, height / 2, width / 2]}
               fontSize={Math.max(0.12, width / 28)}
               color="#172033"
             >{`${width.toFixed(2)} m`}</Text>
           ) : null}
           <Text
+            font="/fonts/NRT-Reg.ttf"
+            onSync={measurementsReady}
             position={[-length / 2 - 0.2, height / 2, 0]}
             fontSize={Math.max(0.12, height / 15)}
             color="#172033"
           >{`${height.toFixed(2)} m`}</Text>
-        </>
+        </Suspense>
       ) : null}
+      </group>
       <OrbitControls
         ref={controls}
         makeDefault
         enablePan
         enableZoom
-        minDistance={Math.max(1.25, Math.max(length, width, height) * 0.35)}
-        maxDistance={Math.max(8, Math.max(length, width, height) * 5)}
-        target={new Vector3(0, height / 2, singleWall ? 0 : width / 2)}
+        enableRotate
+        enableDamping
+        dampingFactor={0.08}
+        screenSpacePanning
+        touches={{ ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_PAN }}
         autoRotate={autoRotate}
         autoRotateSpeed={0.8}
+      />
+      <FitRenderedModel
+        model={model}
+        controls={controls}
+        fitView={fitView}
+        geometryKey={geometryKey}
+        singleWall={singleWall}
       />
     </>
   );
@@ -568,7 +673,9 @@ export function RoomThreeScene({
   selection,
   onSelectionChange,
 }: Props) {
+  const { t } = useI18n();
   const controls = useRef<OrbitControlsImpl>(null);
+  const fitView = useRef<(() => void) | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [labels, setLabels] = useState(true);
   const [fullScreen, setFullScreen] = useState(false);
@@ -629,40 +736,7 @@ export function RoomThreeScene({
         : width / 2;
     setCamera(0, unit.height * 0.52, interiorZ);
   };
-  const fit = useCallback(() => {
-    const orbit = controls.current;
-    if (!orbit) return;
-    const camera = orbit.object as PerspectiveCamera;
-    const nextTarget = new Vector3(0, unit.height / 2, unit.kind === "wall" ? 0 : width / 2);
-    const radius = Math.hypot(unit.length, unit.height, unit.kind === "wall" ? block.thicknessCm / 100 : width) / 2;
-    const verticalFov = MathUtils.degToRad(camera.fov);
-    const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * Math.max(camera.aspect, 0.1));
-    const distance = Math.max(modelSize * 1.2, (radius / Math.sin(Math.min(verticalFov, horizontalFov) / 2)) * 1.18);
-    const direction = new Vector3(1, 0.72, unit.kind === "wall" ? 1 : 1.2).normalize();
-    camera.position.copy(nextTarget).addScaledVector(direction, distance);
-    orbit.target.copy(nextTarget);
-    camera.near = 0.05;
-    camera.far = Math.max(100, modelSize * 20);
-    camera.updateProjectionMatrix();
-    orbit.update();
-  }, [block.thicknessCm, modelSize, unit.height, unit.kind, unit.length, width]);
-  useEffect(() => {
-    const orbit = controls.current;
-    if (!orbit) return;
-    fit();
-  }, [fit, unit.id]);
-  useEffect(() => {
-    const resize = () => requestAnimationFrame(fit);
-    const observer = new ResizeObserver(resize);
-    if (containerRef.current) observer.observe(containerRef.current);
-    window.addEventListener("resize", resize);
-    window.addEventListener("orientationchange", resize);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", resize);
-      window.removeEventListener("orientationchange", resize);
-    };
-  }, [fit]);
+  const fit = () => fitView.current?.();
   useEffect(() => {
     const listener = () => setFullScreen(Boolean(document.fullscreenElement));
     document.addEventListener("fullscreenchange", listener);
@@ -675,159 +749,160 @@ export function RoomThreeScene({
   const fullscreen = async () => {
     try {
       if (!document.fullscreenElement)
-        await document.getElementById("three-canvas")?.requestFullscreen();
+        await containerRef.current?.closest(".three-workspace")?.requestFullscreen?.();
       else await document.exitFullscreen();
     } catch {
       setFullScreen(false);
     }
   };
+  const zoom = (scale: number) => {
+    const orbit = controls.current;
+    if (!orbit) return;
+    orbit.object.position.sub(orbit.target).multiplyScalar(scale).add(orbit.target);
+    orbit.update();
+  };
+  const cameraOptions = useMemo(() => ({ fov: 42 }), []);
+  const toolButton = "flex min-h-11 min-w-11 items-center justify-center gap-1 rounded bg-white px-2 py-2 text-xs font-bold text-slate-900 shadow-sm";
   return (
     <div
       id="three-canvas"
       ref={containerRef}
-      className="relative h-full min-h-0 overflow-hidden rounded-xl bg-slate-100"
+      className="three-canvas relative h-full min-h-0 overflow-hidden rounded-xl bg-slate-100"
     >
-      <div className="absolute right-2 top-2 z-10" dir="rtl">
-        <button type="button" onClick={() => setToolbarOpen((value) => !value)} aria-expanded={toolbarOpen} aria-label="3D controls" className="grid size-11 place-items-center rounded-xl bg-[var(--brand-navy)] text-[var(--brand-cream)] shadow-lg"><SlidersHorizontal size={19} /></button>
-        {toolbarOpen ? <div className="absolute right-0 mt-2 flex w-[min(22rem,calc(100vw-2rem))] flex-wrap gap-1.5 rounded-xl border border-[var(--brand-border)] bg-[var(--brand-cream)] p-2 shadow-xl">
+      <div className="three-toolbar" role="group" aria-label={t("preview.controls")}>
+        <button type="button" onClick={fit} aria-label={t("preview.fit")} title={t("preview.fit")} className="grid size-11 place-items-center rounded-xl bg-[var(--brand-navy)] text-[var(--brand-cream)] shadow-lg"><Focus size={19} /></button>
+        <button type="button" onClick={() => setToolbarOpen((value) => !value)} aria-expanded={toolbarOpen} aria-controls="three-toolbar-panel" aria-label={t("preview.controls")} title={t("preview.controls")} className="grid size-11 place-items-center rounded-xl bg-[var(--brand-navy)] text-[var(--brand-cream)] shadow-lg"><SlidersHorizontal size={19} /></button>
+        {toolbarOpen ? <div id="three-toolbar-panel" className="three-toolbar-panel">
       <div className="flex max-w-full flex-wrap gap-1.5">
         <button
           type="button"
           onClick={fit}
-          className="rounded bg-white px-2 py-2 text-xs font-bold shadow-sm"
+          className={toolButton}
         >
-          <Focus size={14} className="ml-1 inline" />
-          گونجاندن
+          <Focus size={14} />
+          {t("preview.fit")}
         </button>
         <button
           type="button"
           onClick={fit}
-          className="rounded bg-white px-2 py-2 text-xs font-bold shadow-sm"
+          className={toolButton}
         >
-          <RotateCcw size={14} className="ml-1 inline" />
-          گەڕاندنەوە
+          <RotateCcw size={14} />
+          {t("preview.reset")}
         </button>
         <button
           type="button"
           onClick={() => setLabels((value) => !value)}
-          className="rounded bg-white px-2 py-2 text-xs font-bold shadow-sm"
+          className={toolButton}
+          aria-pressed={labels}
         >
           {labels ? (
-            <EyeOff size={14} className="ml-1 inline" />
+            <EyeOff size={14} />
           ) : (
-            <Eye size={14} className="ml-1 inline" />
+            <Eye size={14} />
           )}
-          پێوانەکان
+          {t("preview.measurements")}
         </button>
         <button
           type="button"
           onClick={() => setIsolated((value) => !value)}
-          className="rounded bg-white px-2 py-2 text-xs font-bold shadow-sm"
+          className={toolButton}
+          aria-pressed={isolated}
         >
-          <Layers size={14} className="ml-1 inline" />
-          تەنها دیوار
+          <Layers size={14} />
+          {t("preview.isolate")}
         </button>
         <button
           type="button"
           onClick={() => setCutaway((value) => !value)}
-          className="rounded bg-white px-2 py-2 text-xs font-bold shadow-sm"
+          className={toolButton}
+          aria-pressed={cutaway}
         >
-          <Scissors size={14} className="ml-1 inline" />
-          بڕاو
+          <Scissors size={14} />
+          {t("preview.cutaway")}
         </button>
         <button
           type="button"
           onClick={() => setAutoRotate((value) => !value)}
-          className="rounded bg-white px-2 py-2 text-xs font-bold shadow-sm"
+          className={toolButton}
+          aria-pressed={autoRotate}
         >
-          سوڕاندنی خۆکار
+          {t("preview.autoRotate")}
         </button>
         <button
           type="button"
           onClick={fullscreen}
-          className="rounded bg-white px-2 py-2 text-xs font-bold shadow-sm"
+          className={toolButton}
         >
-          <Expand size={14} className="ml-1 inline" />
-          {fullScreen ? "دەرچوون" : "پڕشاشە"}
+          <Expand size={14} />
+          {t(fullScreen ? "preview.exitFullscreen" : "preview.fullscreen")}
         </button>
       </div>
       <div className="flex w-full flex-wrap gap-1">
         <button
           type="button"
           onClick={fit}
-          className="rounded bg-white px-2 py-1 text-xs shadow-sm"
+          className={toolButton}
         >
           3D
         </button>
         <button
           type="button"
           onClick={() => setCamera(0, modelSize * 1.9, target.z + 0.01)}
-          className="rounded bg-white px-2 py-1 text-xs shadow-sm"
+          className={toolButton}
         >
-          سەرەوە
+          {t("preview.top")}
         </button>
         <button
           type="button"
           onClick={() => setCamera(0, modelSize * 0.8, -modelSize * 1.6)}
-          className="rounded bg-white px-2 py-1 text-xs shadow-sm"
+          className={toolButton}
         >
-          پێشەوە
+          {t("preview.front")}
         </button>
         <button
           type="button"
           onClick={() =>
             setCamera(0, modelSize * 0.8, target.z + modelSize * 1.7)
           }
-          className="rounded bg-white px-2 py-1 text-xs shadow-sm"
+          className={toolButton}
         >
-          پشتەوە
+          {t("preview.backView")}
         </button>
         <button
           type="button"
           onClick={() => setCamera(modelSize * 1.7, modelSize * 0.8, target.z)}
-          className="rounded bg-white px-2 py-1 text-xs shadow-sm"
+          className={toolButton}
         >
-          ڕاست
+          {t("preview.right")}
         </button>
         <button
           type="button"
           onClick={() => setCamera(-modelSize * 1.7, modelSize * 0.8, target.z)}
-          className="rounded bg-white px-2 py-1 text-xs shadow-sm"
+          className={toolButton}
         >
-          چەپ
+          {t("preview.left")}
         </button>
         <button
           type="button"
           onClick={viewInterior}
-          className="rounded bg-white px-2 py-1 text-xs shadow-sm"
+          className={toolButton}
         >
-          ناوەوە
+          {t("preview.interior")}
         </button>
         <button
           type="button"
-          onClick={() => {
-            const camera = controls.current?.object;
-            if (camera) {
-              camera.position.sub(target).multiplyScalar(1.16).add(target);
-              controls.current?.update();
-            }
-          }}
-          className="rounded bg-white p-1.5 shadow-sm"
-          aria-label="Zoom out"
+          onClick={() => zoom(1.16)}
+          className={toolButton}
+          aria-label={t("preview.zoomOut")}
         >
           <Minus size={15} />
         </button>
         <button
           type="button"
-          onClick={() => {
-            const camera = controls.current?.object;
-            if (camera) {
-              camera.position.sub(target).multiplyScalar(0.86).add(target);
-              controls.current?.update();
-            }
-          }}
-          className="rounded bg-white p-1.5 shadow-sm"
-          aria-label="Zoom in"
+          onClick={() => zoom(0.86)}
+          className={toolButton}
+          aria-label={t("preview.zoomIn")}
         >
           <Plus size={15} />
         </button>
@@ -836,16 +911,10 @@ export function RoomThreeScene({
       <Canvas
         shadows
         dpr={[1, 1.75]}
-        camera={{
-          position: [
-            modelSize * 1.45,
-            modelSize * 1.08,
-            width + modelSize * 1.35,
-          ],
-          fov: 42,
-        }}
+        camera={cameraOptions}
+        resize={{ scroll: false, debounce: 0 }}
         style={{ height: "100%", touchAction: "none" }}
-        fallback={<p>WebGL بەردەست نییە؛ حیسابکردن بەردەوامە.</p>}
+        fallback={<p>{t("preview.webgl")}</p>}
       >
         <Scene
           unit={unit}
@@ -856,6 +925,7 @@ export function RoomThreeScene({
           isolated={isolated}
           cutaway={cutaway}
           autoRotate={autoRotate}
+          fitView={fitView}
           choose={choose}
         />
       </Canvas>

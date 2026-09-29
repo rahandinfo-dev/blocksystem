@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --test src/features/calculator/lib/calculations.test.ts"
+    "test": "node --experimental-strip-types --test src/features/calculator/lib/calculations.test.ts src/features/calculator/lib/camera-fit.test.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
