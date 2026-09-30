@@ -9,6 +9,7 @@ import {
 } from "@/features/calculator/lib/opening-placement";
 import {
   createDefaultProject,
+  duplicateRoom,
   createOpening,
   createRoom,
   createWall,
@@ -370,7 +371,7 @@ export function Calculator() {
     id: string,
     field: keyof Pick<
       WallInput,
-      "name" | "length" | "height" | "lengthUnit" | "heightUnit"
+      "name" | "length" | "height" | "thickness" | "lengthUnit" | "heightUnit" | "thicknessUnit" | "wallType" | "notes"
     >,
     value: string,
   ) =>
@@ -586,6 +587,8 @@ export function Calculator() {
                         : current.rooms,
                   }))
                 }
+                onDuplicate={(id) => setData((current) => { const room = current.rooms.find((item) => item.id === id); return room ? { ...current, rooms: [...current.rooms, duplicateRoom(room)] } : current; })}
+                onMove={(id, direction) => setData((current) => { const index = current.rooms.findIndex((room) => room.id === id); const nextIndex = index + direction; if (index < 0 || nextIndex < 0 || nextIndex >= current.rooms.length) return current; const rooms = [...current.rooms]; [rooms[index], rooms[nextIndex]] = [rooms[nextIndex], rooms[index]]; return { ...current, rooms }; })}
                 onRoomChange={updateRoom}
                 onOpeningAdd={(id, kind, wallId) =>
                   addOpening(id, kind, "rooms", wallId)

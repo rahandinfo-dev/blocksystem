@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, Plus, Trash2 } from "lucide-react";
 
 import { LengthField } from "@/components/ui/length-field";
 import type { OpeningInput, RoomInput } from "@/features/calculator/types";
@@ -9,6 +9,8 @@ interface RoomsEditorProps {
   rooms: RoomInput[];
   onAdd: () => void;
   onRemove: (id: string) => void;
+  onDuplicate: (id: string) => void;
+  onMove: (id: string, direction: -1 | 1) => void;
   onRoomChange: (
     id: string,
     field: keyof Pick<
@@ -83,6 +85,10 @@ export function RoomsEditor(props: RoomsEditorProps) {
             <article key={room.id} className="rounded-xl border border-slate-200 p-4 sm:p-5">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <h3 className="font-bold text-slate-950">{room.name.trim() || `ژووری ${index + 1}`}</h3>
+                <div className="flex gap-1">
+                <button type="button" disabled={index === 0} onClick={() => props.onMove(room.id, -1)} aria-label={t("rooms.moveUp")} className="grid size-10 place-items-center rounded-lg hover:bg-slate-100 disabled:opacity-40"><ChevronUp size={18} /></button>
+                <button type="button" disabled={index === props.rooms.length - 1} onClick={() => props.onMove(room.id, 1)} aria-label={t("rooms.moveDown")} className="grid size-10 place-items-center rounded-lg hover:bg-slate-100 disabled:opacity-40"><ChevronDown size={18} /></button>
+                <button type="button" onClick={() => props.onDuplicate(room.id)} aria-label={t("rooms.duplicate")} className="grid size-10 place-items-center rounded-lg hover:bg-slate-100"><Copy size={17} /></button>
                 <button
                   type="button"
                   disabled={props.rooms.length === 1}
@@ -92,6 +98,7 @@ export function RoomsEditor(props: RoomsEditorProps) {
                 >
                   <Trash2 size={18} />
                 </button>
+                </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                 <div className="form-field">

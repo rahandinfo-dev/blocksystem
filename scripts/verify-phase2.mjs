@@ -28,9 +28,13 @@ await page.getByRole("dialog", { name: "Search" }).waitFor({ state: "detached" }
 await page.getByText("Project information", { exact: false }).first().click();
 const projectInput = page.getByLabel("Project name");
 await projectInput.fill("Phase 2 browser validation");
+await page.locator("#project-projectNumber").fill("BS-P3-001");
+await page.locator("#project-status").selectOption("active");
 await page.locator("#room-room-1-length").fill("4");
 await page.locator("#room-room-1-width").fill("3");
 await page.locator("#room-room-1-height").fill("2.8");
+await page.getByRole("button", { name: "Duplicate room" }).click();
+if (await page.getByRole("button", { name: "Duplicate room" }).count() !== 2) throw new Error("Room duplication did not create an independent room");
 await page.waitForTimeout(1200);
 await page.getByText("Saved", { exact: true }).first().waitFor();
 const storage = await page.evaluate(() => JSON.parse(localStorage.getItem("yek-block-projects-v1") ?? "[]"));
@@ -79,5 +83,5 @@ for (const width of [320, 375, 390, 430, 768, 1024, 1280, 1920]) {
   if (!await viewportFits()) throw new Error(`Horizontal overflow at ${width}px`);
 }
 if (errors.length) throw new Error(errors.join("\n"));
-console.log("Phase 2 browser validation passed");
+console.log("BlockSystem Phase 3 browser validation passed");
 await browser.close();

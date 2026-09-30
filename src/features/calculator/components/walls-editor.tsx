@@ -11,7 +11,7 @@ interface WallsEditorProps {
   onRemove: (id: string) => void;
   onWallChange: (
     id: string,
-    field: keyof Pick<WallInput, "name" | "length" | "height" | "lengthUnit" | "heightUnit">,
+    field: keyof Pick<WallInput, "name" | "length" | "height" | "thickness" | "lengthUnit" | "heightUnit" | "thicknessUnit" | "wallType" | "notes">,
     value: string,
   ) => void;
   onOpeningChange: (
@@ -98,7 +98,17 @@ export function WallsEditor(props: WallsEditorProps) {
                   onUnitChange={(unit) => props.onWallChange(wall.id, "heightUnit", unit)}
                   invalid={props.showValidation && !(Number(wall.height) > 0)}
                 />
+                <LengthField
+                  id={`wall-${wall.id}-thickness`}
+                  label={t("blocks.thickness")}
+                  value={wall.thickness ?? "0.2"}
+                  unit={wall.thicknessUnit ?? "m"}
+                  onChange={(value) => props.onWallChange(wall.id, "thickness", value)}
+                  onUnitChange={(unit) => props.onWallChange(wall.id, "thicknessUnit", unit)}
+                />
+                <div className="form-field"><label className="form-label">{t("walls.type")}</label><select value={wall.wallType ?? "interior"} onChange={(event) => props.onWallChange(wall.id, "wallType", event.target.value)} className="form-control px-3"><option value="interior">{t("walls.interior")}</option><option value="exterior">{t("walls.exterior")}</option></select></div>
               </div>
+              <div className="mt-4 form-field"><label className="form-label">{t("projectInfo.notes")}</label><textarea value={wall.notes ?? ""} onChange={(event) => props.onWallChange(wall.id, "notes", event.target.value)} rows={2} className="form-control px-3 py-2" /></div>
               <div className="mt-5 space-y-5">
                 <OpeningsSection
                   kind="door"

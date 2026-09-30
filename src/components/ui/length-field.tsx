@@ -19,6 +19,8 @@ const labels: Record<LengthUnit, string> = {
   mm: "میلیمەتەر",
   cm: "سانتیمەتەر",
   m: "مەتر",
+  in: "in",
+  ft: "ft",
 };
 
 function displayValue(value: string, unit: LengthUnit): string {

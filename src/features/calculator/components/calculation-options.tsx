@@ -52,7 +52,9 @@ export function CalculationOptions({
             className="mt-2 h-12 w-full rounded-xl border border-slate-300 bg-white px-3"
           >
             <option value="0">0%</option>
+            <option value="3">{t("options.waste3")}</option>
             <option value="5">5%</option>
+            <option value="7">{t("options.waste7")}</option>
             <option value="10">10%</option>
             <option value="custom">{t("options.customWaste")}</option>
           </select>

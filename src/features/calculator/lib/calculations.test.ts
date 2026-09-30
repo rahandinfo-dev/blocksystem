@@ -325,3 +325,18 @@ test("builds a current wall-only receipt with USD pricing", () => {
   assert.equal(receipt.cost?.currency, "USD");
   assert.equal(receipt.fileName, "REK-Wall-2026-09-28.pdf");
 });
+
+test("keeps wall formulas deterministic across openings, waste, and imperial display conversion", () => {
+  const response = calculateProject({ mode: "walls", block: standardBlock, wastePercentage: 5, units: [{ id: "wall-6x4", name: "Wall", kind: "wall", length: 6, height: 4, doors: [{ width: 1, height: 2, quantity: 1 }], windows: [{ width: 1, height: 1, quantity: 2 }] }] });
+  const result = validResult(response);
+  assert.equal(result.grossWallArea, 24);
+  assert.equal(result.totalDoorArea, 2);
+  assert.equal(result.totalWindowArea, 2);
+  assert.equal(result.netWallArea, 20);
+  assert.equal(result.requiredBlocks, 250);
+  assert.equal(result.wasteBlocks, 13);
+  assert.equal(result.recommendedBlocks, 263);
+  assert.equal(convertLength(1, "m", "ft"), 3.28083989501312);
+  assert.equal(convertLength(12, "in", "ft"), 1);
+  assert.equal(convertArea(1, "m²", "ft²"), 10.7639104167097);
+});
