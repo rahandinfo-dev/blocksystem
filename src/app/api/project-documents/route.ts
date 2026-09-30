@@ -1,0 +1,4 @@
+import { renderProjectDocumentPdf } from "@/features/calculator/lib/project-document-pdf";
+import type { ProjectDocumentData } from "@/features/calculator/lib/project-document";
+export const runtime = "nodejs";
+export async function POST(request: Request) { try { const body = await request.json() as { document?: ProjectDocumentData }; if (!body.document || !body.document.result || typeof body.document.reference !== "string") return Response.json({ error: "Invalid document" }, { status: 400 }); const pdf = await renderProjectDocumentPdf(body.document); return new Response(new Uint8Array(pdf), { headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="${body.document.fileName.replace(/[^A-Za-z0-9._-]/g,"-")}"` } }); } catch { return Response.json({ error: "Document generation failed" }, { status: 500 }); } }
