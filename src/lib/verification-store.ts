@@ -7,6 +7,7 @@ import { verificationEnvironment } from "./server-env.ts";
 
 /** Only this adapter handles persistence. Production uses an external Redis REST service. */
 export interface VerificationStore {
+  ping(): Promise<void>;
   next(prefix: string): Promise<number>;
   get(token: string): Promise<VerificationRecord | null>;
   list(projectId: string): Promise<VerificationRecord[]>;
@@ -38,6 +39,10 @@ export class RedisVerificationStore implements VerificationStore {
     const body = (await response.json()) as { result: T; error?: string };
     if (body.error) throw new Error("Verification store unavailable");
     return body.result;
+  }
+  async ping() {
+    const result = await this.command<string>("PING");
+    if (result !== "PONG") throw new Error("Verification store unavailable");
   }
   next(prefix: string) {
     return this.command<number>("INCR", `bs:verify:sequence:${prefix}`);
@@ -161,6 +166,9 @@ export class FileVerificationStore implements VerificationStore {
       });
     pending = operation;
     return operation;
+  }
+  async ping() {
+    await this.transaction(() => undefined);
   }
   next(prefix: string) {
     return this.transaction(

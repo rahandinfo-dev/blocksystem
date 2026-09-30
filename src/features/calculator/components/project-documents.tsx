@@ -12,6 +12,7 @@ import type { CalculatorProjectData } from "@/features/calculator/types";
 import type { VerificationRecord } from "@/lib/verification";
 import { useI18n } from "@/lib/i18n";
 import { ProjectQr } from "./project-qr";
+import { fetchWithSafeRetry } from "@/lib/client-network";
 
 type RecordView = VerificationRecord & { url: string };
 const button =
@@ -38,6 +39,8 @@ export function ProjectDocuments({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [mounted, setMounted] = useState(false);
+  const [adminAuthenticated, setAdminAuthenticated] = useState(false);
+  const [diagnostics, setDiagnostics] = useState<{ status: string; version: string; services: { verification: string } }>();
   const options = data.documentSettings ?? defaultOptions;
   const update = (patch: Partial<typeof options>) =>
     onSettings({ ...options, ...patch });
@@ -51,11 +54,12 @@ export function ProjectDocuments({
       setRecords([]);
       setSelected(undefined);
       if (projectId)
-        void fetch("/api/verification/session")
+        void fetchWithSafeRetry("/api/verification/session")
           .then((r) => r.json())
           .then(async (session) => {
+            if (live) setAdminAuthenticated(Boolean(session.authenticated));
             if (!session.authenticated || !live) return;
-            const response = await fetch(
+            const response = await fetchWithSafeRetry(
               `/api/verification/records?projectId=${encodeURIComponent(projectId)}`,
             );
             if (!response.ok) throw new Error();
@@ -87,7 +91,7 @@ export function ProjectDocuments({
   const snapshot = chosen?.snapshot ?? draft;
   const refresh = async () => {
     if (!projectId) return;
-    const response = await fetch(
+    const response = await fetchWithSafeRetry(
       `/api/verification/records?projectId=${encodeURIComponent(projectId)}`,
     );
     if (!response.ok) throw new Error();
@@ -119,8 +123,14 @@ export function ProjectDocuments({
       });
       setPassword("");
       if (!response.ok) throw new Error(String(response.status));
+      setAdminAuthenticated(true);
       await refresh();
     });
+  const refreshDiagnostics = () => action(async () => {
+    const response = await fetchWithSafeRetry("/api/verification/diagnostics", { cache: "no-store" });
+    if (!response.ok) throw new Error(String(response.status));
+    setDiagnostics((await response.json()) as { status: string; version: string; services: { verification: string } });
+  });
   const issue = (projectOnly = false) =>
     action(async () => {
       const response = await fetch("/api/verification/records", {
@@ -242,6 +252,8 @@ export function ProjectDocuments({
             onClick={() =>
               void action(async () => {
                 await fetch("/api/verification/session", { method: "DELETE" });
+                setAdminAuthenticated(false);
+                setDiagnostics(undefined);
                 setRecords([]);
                 setSelected(undefined);
               })
@@ -327,6 +339,7 @@ export function ProjectDocuments({
           {t("documents.refresh")}
         </button>
       </div>
+      {adminAuthenticated ? <details className="mt-4 rounded-lg border border-slate-200 p-3"><summary className="min-h-11 cursor-pointer font-semibold">{t("reliability.diagnostics")}</summary><button type="button" className={`${button} mt-2`} disabled={busy} onClick={() => void refreshDiagnostics()}>{t("security.refresh")}</button>{diagnostics ? <dl className="mt-3 space-y-1 text-sm"><div><dt className="inline font-semibold">{t("reliability.health")}: </dt><dd className="inline"><bdi dir="ltr">{diagnostics.status}</bdi></dd></div><div><dt className="inline font-semibold">{t("reliability.version")}: </dt><dd className="inline"><bdi dir="ltr">{diagnostics.version}</bdi></dd></div><div><dt className="inline font-semibold">{t("reliability.verification")}: </dt><dd className="inline"><bdi dir="ltr">{diagnostics.services.verification}</bdi></dd></div></dl> : null}</details> : null}
       <div className="mt-4 space-y-3">
         {records.length ? (
           records.map((record) => (

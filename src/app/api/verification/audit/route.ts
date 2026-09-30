@@ -2,18 +2,16 @@ import { authorized } from "@/lib/verification-auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { safeServerError } from "@/lib/server-env";
 import { verificationStore } from "@/lib/verification-store";
+import { apiError, apiHeaders } from "@/lib/observability";
 
 export const runtime = "nodejs";
 export async function GET(request: Request) {
   try {
     if (!authorized(request))
-      return Response.json({ error: "unauthorized" }, { status: 401 });
+      return apiError("UNAUTHORIZED", 401, request);
     const store = verificationStore();
     if (!(await enforceRateLimit(store, request, "admin")))
-      return Response.json(
-        { error: "rate_limited" },
-        { status: 429, headers: { "Retry-After": "60" } },
-      );
+      return apiError("RATE_LIMITED", 429, request, { "Retry-After": "60" });
     const count = Math.min(
       200,
       Math.max(
@@ -23,10 +21,10 @@ export async function GET(request: Request) {
     );
     return Response.json(
       { events: await store.listAudit(count) },
-      { headers: { "Cache-Control": "no-store" } },
+      { headers: apiHeaders(request) },
     );
   } catch (error) {
-    safeServerError(error);
-    return Response.json({ error: "unavailable" }, { status: 503 });
+    safeServerError(error, request);
+    return apiError("DEPENDENCY_UNAVAILABLE", 503, request);
   }
 }

@@ -9,11 +9,12 @@ import {
 import { auditEvent, requestFingerprint } from "@/lib/audit";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { safeServerError } from "@/lib/server-env";
+import { apiError, apiHeaders } from "@/lib/observability";
 export const runtime = "nodejs";
 export async function POST(request: Request) {
   try {
     if (!sameOrigin(request) || !authorized(request))
-      return Response.json({ error: "unauthorized" }, { status: 401 });
+      return apiError("UNAUTHORIZED", 401, request);
     const body = (await limitedJson(request)) as {
       token?: unknown;
       language?: unknown;
@@ -23,16 +24,13 @@ export async function POST(request: Request) {
       !validToken(body.token) ||
       !["ku", "ar", "en-GB"].includes(String(body.language))
     )
-      return Response.json({ error: "invalid" }, { status: 400 });
+      return apiError("VALIDATION_ERROR", 400, request);
     const store = verificationStore();
     if (!(await enforceRateLimit(store, request, "document")))
-      return Response.json(
-        { error: "rate_limited" },
-        { status: 429, headers: { "Retry-After": "60" } },
-      );
+      return apiError("RATE_LIMITED", 429, request, { "Retry-After": "60" });
     const record = await store.get(body.token);
     if (!record?.snapshot)
-      return Response.json({ error: "invalid" }, { status: 404 });
+      return apiError("NOT_FOUND", 404, request);
     const pdf = await renderProjectDocumentPdf(
       record.snapshot,
       body.language as "ku" | "ar" | "en-GB",
@@ -59,11 +57,11 @@ export async function POST(request: Request) {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${record.snapshot.fileName.replace(/[^A-Za-z0-9._-]/g, "-")}"`,
-        "Cache-Control": "no-store",
+        ...apiHeaders(request),
       },
     });
   } catch (error) {
-    safeServerError(error);
-    return Response.json({ error: "unavailable" }, { status: 503 });
+    safeServerError(error, request);
+    return apiError("DEPENDENCY_UNAVAILABLE", 503, request);
   }
 }

@@ -8,6 +8,7 @@ import { languageDetails, languages, useI18n, type Language } from "@/lib/i18n";
 import type { BlockDefinition, NumericUnit } from "@/features/calculator/types";
 import type { PreviewSelection } from "./room-three-scene";
 import { PreviewWorkspace } from "./preview-workspace";
+import { ComponentRecoveryBoundary } from "@/components/reliability/component-recovery-boundary";
 
 const RoomThreeScene = dynamic(
   () => import("./room-three-scene").then((module) => module.RoomThreeScene),
@@ -24,6 +25,10 @@ interface Props {
 function PreviewLoading() {
   const { t } = useI18n();
   return <div className="grid h-full place-items-center" role="status">{t("preview.loading")}</div>;
+}
+function PreviewFailure({ retry }: { retry: () => void }) {
+  const { t } = useI18n();
+  return <div className="grid h-full place-items-center gap-3 p-4 text-center" role="alert"><p>{t("reliability.featureUnavailable")}</p><button type="button" className="min-h-11 rounded-lg border px-3 font-semibold" onClick={retry}>{t("reliability.reload3d")}</button></div>;
 }
 
 export function WallPreview({ units, block }: Props) {
@@ -148,12 +153,7 @@ export function WallPreview({ units, block }: Props) {
           </header>
           <div className="three-workspace-content">
             <div className="three-scene-slot">
-              <RoomThreeScene
-                unit={active}
-                block={block}
-                selection={selection}
-                onSelectionChange={setSelection}
-              />
+              <ComponentRecoveryBoundary fallback={(retry) => <PreviewFailure retry={retry} />}><RoomThreeScene unit={active} block={block} selection={selection} onSelectionChange={setSelection} /></ComponentRecoveryBoundary>
             </div>
             <aside className="three-details bg-slate-900 text-sm shadow-lg" data-open={detailsOpen}>
               <button className="three-details-toggle" type="button" aria-expanded={detailsOpen} aria-controls="three-details-content" onClick={() => setDetailsOpen((value) => !value)}>

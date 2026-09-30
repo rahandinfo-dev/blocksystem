@@ -9,6 +9,7 @@ import { auditEvent, requestFingerprint } from "@/lib/audit";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { safeServerError } from "@/lib/server-env";
 import { verificationStore } from "@/lib/verification-store";
+import { apiError, apiHeaders } from "@/lib/observability";
 export const runtime = "nodejs";
 export async function GET(request: Request) {
   let authenticated = false;
@@ -19,26 +20,23 @@ export async function GET(request: Request) {
   }
   return Response.json(
     { authenticated },
-    { headers: { "Cache-Control": "no-store" } },
+    { headers: apiHeaders(request) },
   );
 }
 export async function POST(request: Request) {
   if (!sameOrigin(request))
-    return Response.json({ error: "forbidden" }, { status: 403 });
+    return apiError("FORBIDDEN", 403, request);
   try {
     const store = verificationStore();
     if (!(await enforceRateLimit(store, request, "admin")))
-      return Response.json(
-        { error: "rate_limited" },
-        { status: 429, headers: { "Retry-After": "60" } },
-      );
+      return apiError("RATE_LIMITED", 429, request, { "Retry-After": "60" });
     const body = (await limitedJson(request)) as { password?: unknown };
     if (
       typeof body.password !== "string" ||
       body.password.length > 1024 ||
       !passwordMatches(body.password)
     )
-      return Response.json({ error: "unauthorized" }, { status: 401 });
+      return apiError("UNAUTHORIZED", 401, request);
     await store.appendAudit(
       auditEvent({
         action: "admin.signed-in",
@@ -50,19 +48,20 @@ export async function POST(request: Request) {
     return Response.json(
       { ok: true },
       {
-        headers: { "Set-Cookie": sessionCookie(), "Cache-Control": "no-store" },
+        headers: apiHeaders(request, { "Set-Cookie": sessionCookie() }),
       },
     );
   } catch (error) {
-    safeServerError(error);
-    return Response.json({ error: "unavailable" }, { status: 503 });
+    safeServerError(error, request);
+    return apiError("DEPENDENCY_UNAVAILABLE", 503, request);
   }
 }
 export async function DELETE(request: Request) {
-  if (!sameOrigin(request)) return new Response(null, { status: 403 });
+  if (!sameOrigin(request)) return apiError("FORBIDDEN", 403, request);
   return new Response(null, {
     status: 204,
     headers: {
+      ...apiHeaders(request),
       "Set-Cookie":
         "bs-verification-admin=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0",
     },

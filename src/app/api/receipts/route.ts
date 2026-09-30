@@ -1,5 +1,7 @@
 import { renderReceiptPdf } from "@/features/calculator/lib/receipt-pdf";
 import type { ReceiptData } from "@/features/calculator/lib/receipt-data";
+import { apiError, apiHeaders } from "@/lib/observability";
+import { safeServerError } from "@/lib/server-env";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,7 +32,7 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as { receipt?: unknown };
     if (!isReceiptData(body.receipt)) {
-      return Response.json({ error: "Invalid receipt data." }, { status: 400 });
+      return apiError("VALIDATION_ERROR", 400, request);
     }
 
     const pdf = await renderReceiptPdf(body.receipt);
@@ -41,10 +43,11 @@ export async function POST(request: Request) {
         "Content-Length": String(pdf.byteLength),
         "Content-Disposition": `attachment; filename="${fileName}"`,
         "Cache-Control": "no-store",
+        "X-Request-ID": apiHeaders(request)["X-Request-ID"],
       },
     });
   } catch (error) {
-    console.error("Receipt PDF generation failed", error);
-    return Response.json({ error: "Receipt PDF generation failed." }, { status: 500 });
+    safeServerError(error, request);
+    return apiError("INTERNAL_ERROR", 500, request);
   }
 }

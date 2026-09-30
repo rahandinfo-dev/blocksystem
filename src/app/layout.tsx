@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { LanguageProvider } from "@/lib/i18n";
 import { PwaClient } from "@/components/pwa/pwa-client";
+import { PerformanceObserverClient } from "@/components/reliability/performance-observer";
 
 import "./globals.css";
 
@@ -21,7 +22,7 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, view
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ku" dir="rtl" className={nrt.variable} suppressHydrationWarning>
-      <body><LanguageProvider>{children}<PwaClient /></LanguageProvider></body>
+      <body><LanguageProvider>{children}<PwaClient /><PerformanceObserverClient /></LanguageProvider></body>
     </html>
   );
 }

@@ -71,3 +71,9 @@ BlockSystem registers its service worker only in production. Supported browsers 
 Verification pages and every `/api/` operation are intentionally excluded from the service-worker cache. A verification result is therefore always live, and an unavailable connection is never presented as a valid document. Creating documents, revoking verification, administration and new server-issued records require a successful network request.
 
 When a deployment provides a newer worker, the app presents an **Update now** control. Updating is user-initiated so the app does not reload while someone may have unsaved edits. After changing any Vercel environment variable from `.env.example` (especially `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `VERIFICATION_ADMIN_SECRET`, or `VERIFICATION_PUBLIC_ORIGIN`), redeploy the production site. `VERIFICATION_PUBLIC_ORIGIN` must be the HTTPS production origin without a path.
+
+## Production health and diagnostics
+
+`/api/health/live` is a lightweight process liveness probe. `/api/health/ready` checks verification configuration and performs a bounded persistence probe; it returns `503` when that subsystem is not ready while leaving local calculator functionality unaffected. `/api/health` provides the readiness report without configuration values, credentials, or project data.
+
+Server failures use a safe structured error payload with an `X-Request-ID` correlation header. Structured logs redact secrets, authentication data, tokens and project payloads. A signed-in verification administrator can open the Diagnostics section in the document workspace for the safe version and dependency state. Set the required variables from `.env.example` in Vercel and redeploy before treating verification readiness as production-ready.

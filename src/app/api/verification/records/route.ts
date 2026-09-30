@@ -13,21 +13,19 @@ import {
 import { auditEvent, requestFingerprint } from "@/lib/audit";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { safeServerError } from "@/lib/server-env";
+import { apiError, apiHeaders } from "@/lib/observability";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   try {
     if (!authorized(request))
-      return Response.json({ error: "unauthorized" }, { status: 401 });
+      return apiError("UNAUTHORIZED", 401, request);
     const store = verificationStore();
     if (!(await enforceRateLimit(store, request, "admin")))
-      return Response.json(
-        { error: "rate_limited" },
-        { status: 429, headers: { "Retry-After": "60" } },
-      );
+      return apiError("RATE_LIMITED", 429, request, { "Retry-After": "60" });
     const projectId = new URL(request.url).searchParams.get("projectId") ?? "";
     if (!/^[A-Za-z0-9_-]{1,100}$/.test(projectId))
-      return Response.json({ error: "invalid" }, { status: 400 });
+      return apiError("VALIDATION_ERROR", 400, request);
     const origin = verificationOrigin();
     const records = await store.list(projectId);
     return Response.json(
@@ -35,23 +33,20 @@ export async function GET(request: Request) {
         ...r,
         url: verificationUrl(origin, r.verificationToken),
       })),
-      { headers: { "Cache-Control": "no-store" } },
+      { headers: apiHeaders(request) },
     );
   } catch (error) {
-    safeServerError(error);
-    return Response.json({ error: "unavailable" }, { status: 503 });
+    safeServerError(error, request);
+    return apiError("DEPENDENCY_UNAVAILABLE", 503, request);
   }
 }
 export async function POST(request: Request) {
   try {
     if (!sameOrigin(request) || !authorized(request))
-      return Response.json({ error: "unauthorized" }, { status: 401 });
+      return apiError("UNAUTHORIZED", 401, request);
     const store = verificationStore();
     if (!(await enforceRateLimit(store, request, "admin")))
-      return Response.json(
-        { error: "rate_limited" },
-        { status: 429, headers: { "Retry-After": "60" } },
-      );
+      return apiError("RATE_LIMITED", 429, request, { "Retry-After": "60" });
     const origin = verificationOrigin();
     const body = (await limitedJson(request)) as {
       projectId?: unknown;
@@ -60,7 +55,7 @@ export async function POST(request: Request) {
       projectOnly?: unknown;
     };
     if (typeof body.projectId !== "string")
-      return Response.json({ error: "invalid" }, { status: 400 });
+      return apiError("VALIDATION_ERROR", 400, request);
     try {
       validateProject(body.data);
       const options =
@@ -82,31 +77,28 @@ export async function POST(request: Request) {
       );
       return Response.json(
         { ...record, url: verificationUrl(origin, record.verificationToken) },
-        { status: 201, headers: { "Cache-Control": "no-store" } },
+        { status: 201, headers: apiHeaders(request) },
       );
     } catch (error) {
       if (error instanceof Error && error.message.startsWith("Invalid"))
-        return Response.json({ error: "invalid" }, { status: 400 });
+        return apiError("VALIDATION_ERROR", 400, request);
       throw error;
     }
   } catch (error) {
-    safeServerError(error);
-    return Response.json({ error: "unavailable" }, { status: 503 });
+    safeServerError(error, request);
+    return apiError("DEPENDENCY_UNAVAILABLE", 503, request);
   }
 }
 export async function DELETE(request: Request) {
   try {
     if (!sameOrigin(request) || !authorized(request))
-      return Response.json({ error: "unauthorized" }, { status: 401 });
+      return apiError("UNAUTHORIZED", 401, request);
     const store = verificationStore();
     if (!(await enforceRateLimit(store, request, "revoke")))
-      return Response.json(
-        { error: "rate_limited" },
-        { status: 429, headers: { "Retry-After": "60" } },
-      );
+      return apiError("RATE_LIMITED", 429, request, { "Retry-After": "60" });
     const body = (await limitedJson(request)) as { token?: unknown };
     if (typeof body.token !== "string" || !validToken(body.token))
-      return Response.json({ error: "invalid" }, { status: 400 });
+      return apiError("VALIDATION_ERROR", 400, request);
     const record = await store.revoke(body.token);
     if (record)
       await store.appendAudit(
@@ -118,12 +110,10 @@ export async function DELETE(request: Request) {
           context: { request: requestFingerprint(request) },
         }),
       );
-    return Response.json(
-      { ok: !!record },
-      { status: record ? 200 : 404, headers: { "Cache-Control": "no-store" } },
-    );
+    if (!record) return apiError("NOT_FOUND", 404, request);
+    return Response.json({ ok: true }, { headers: apiHeaders(request) });
   } catch (error) {
-    safeServerError(error);
-    return Response.json({ error: "unavailable" }, { status: 503 });
+    safeServerError(error, request);
+    return apiError("DEPENDENCY_UNAVAILABLE", 503, request);
   }
 }

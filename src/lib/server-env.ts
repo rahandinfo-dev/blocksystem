@@ -1,4 +1,5 @@
 /** Server-only configuration. Values are deliberately never returned to clients. */
+import { log, requestId } from "./observability.ts";
 export type VerificationEnvironment = {
   production: boolean;
   redisUrl?: string;
@@ -57,10 +58,9 @@ export function verificationEnvironment(
       : undefined,
   };
 }
-export function safeServerError(error: unknown) {
-  // Deliberately avoids request bodies, secrets and stack traces.
-  console.error(
-    "BlockSystem server operation failed",
-    error instanceof Error ? error.name : "UnknownError",
-  );
+export function safeServerError(error: unknown, request?: Request) {
+  log("error", "server.operation_failed", {
+    error: error instanceof Error ? error.name : "UnknownError",
+    requestId: request ? requestId(request) : undefined,
+  });
 }
