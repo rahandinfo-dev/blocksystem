@@ -40,6 +40,14 @@ test("production environment validation rejects public secrets and unsafe URLs",
   ])
     assert.throws(() => verificationEnvironment(env));
 });
+test("Vercel KV variables provide a server-only Redis fallback without overriding Upstash", () => {
+  const fallback = environment({ UPSTASH_REDIS_REST_URL: undefined, UPSTASH_REDIS_REST_TOKEN: undefined, KV_REST_API_URL: "https://kv.example.test", KV_REST_API_TOKEN: "k".repeat(40) });
+  assert.equal(verificationEnvironment(fallback).redisUrl, "https://kv.example.test");
+  assert.equal(verificationEnvironment(fallback).redisToken, "k".repeat(40));
+  const preferred = environment({ KV_REST_API_URL: "https://kv.example.test", KV_REST_API_TOKEN: "k".repeat(40) });
+  assert.equal(verificationEnvironment(preferred).redisUrl, "https://redis.example.test");
+  assert.throws(() => verificationEnvironment(environment({ NEXT_PUBLIC_KV_REST_API_TOKEN: "leak" })));
+});
 test("append-only audit filtering and persistent rate limits exclude sensitive material", async () => {
   const store = new FileVerificationStore(
     await mkdtemp(join(tmpdir(), "blocksystem-phase8-")),

@@ -10,6 +10,7 @@ export type VerificationEnvironment = {
 
 const protectedNames = [
   "UPSTASH_REDIS_REST_TOKEN",
+  "KV_REST_API_TOKEN",
   "VERIFICATION_ADMIN_SECRET",
 ] as const;
 function validOrigin(value: string, production: boolean) {
@@ -34,8 +35,9 @@ export function verificationEnvironment(
     if (env[`NEXT_PUBLIC_${name}`])
       throw new Error("Verification secret is publicly configured");
   const production = env.NODE_ENV === "production" || Boolean(env.VERCEL);
-  const redisUrl = env.UPSTASH_REDIS_REST_URL;
-  const redisToken = env.UPSTASH_REDIS_REST_TOKEN;
+  // Upstash names take precedence; Vercel KV exposes the compatible fallback names.
+  const redisUrl = env.UPSTASH_REDIS_REST_URL || env.KV_REST_API_URL;
+  const redisToken = env.UPSTASH_REDIS_REST_TOKEN || env.KV_REST_API_TOKEN;
   const adminSecret = env.VERIFICATION_ADMIN_SECRET;
   const publicOrigin = env.VERIFICATION_PUBLIC_ORIGIN;
   if (redisUrl) {

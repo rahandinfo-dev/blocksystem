@@ -1,7 +1,7 @@
 # Document verification deployment
 
-The calculator still saves editable projects locally. Issued documents and public
-verification records are separate, authoritative server records. Documents retain
+Authenticated editable projects, issued documents and public verification records are
+authoritative server records. Documents retain
 an immutable calculated snapshot; editing/deleting a browser project cannot change
 an issued document. New revisions receive new document IDs, references and tokens.
 Revocation retains the original record, fingerprint and URL.
@@ -15,6 +15,8 @@ production variables and redeploy:
 
 - `UPSTASH_REDIS_REST_URL`: HTTPS REST endpoint for the persistent database.
 - `UPSTASH_REDIS_REST_TOKEN`: database write credential.
+- Vercel KV projects may instead provide `KV_REST_API_URL` and
+  `KV_REST_API_TOKEN`. If both pairs exist, the explicit `UPSTASH_*` pair is used.
 - `VERIFICATION_ADMIN_SECRET`: randomly generated secret of at least 32 characters.
 - `VERIFICATION_PUBLIC_ORIGIN`: permanent canonical HTTPS origin, e.g.
   `https://your-project.example`. No path, credentials, query or fragment.
