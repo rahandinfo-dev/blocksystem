@@ -20,6 +20,7 @@ test("service worker keeps verification and API responses outside every cache", 
   assert.match(source, /path\.startsWith\("\/api\/"\).*path\.startsWith\("\/verify\/"\)/);
   assert.match(source, /if \(url\.origin !== self\.location\.origin \|\| sensitive\(url\.pathname\)\) return/);
   assert.doesNotMatch(source, /cache\.addAll\([^)]*verify/);
+  assert.match(source, /blocksystem-shell-v1\.0\.0/);
 });
 
 test("manifest, production-only registration, and 3D lazy boundary are present", async () => {

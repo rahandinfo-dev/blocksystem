@@ -1,5 +1,8 @@
 /* BlockSystem offline shell. Server data is deliberately never cached here. */
-const CACHE = "blocksystem-shell-v1";
+// Bump this deliberately with every release that changes the offline shell.
+// It makes browsers install the new worker and removes obsolete shell entries
+// only after the user accepts the existing update prompt.
+const CACHE = "blocksystem-shell-v1.0.0";
 const SHELL = ["/", "/offline", "/manifest.webmanifest", "/favicon.ico", "/icons/icon-192.svg", "/icons/icon-512.svg"];
 const sensitive = (path) => path.startsWith("/api/") || path.startsWith("/verify/");
 const cacheable = (path) => path === "/" || path === "/offline" || path === "/favicon.ico" || path === "/manifest.webmanifest" || path.startsWith("/_next/static/") || path.startsWith("/icons/");

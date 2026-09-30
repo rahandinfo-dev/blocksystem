@@ -53,7 +53,7 @@ export function createWorkspaceBackup(
     format: "blocksystem-backup",
     version: backupVersion,
     createdAt: new Date().toISOString(),
-    applicationVersion: "0.1.0",
+    applicationVersion: "1.0.0",
     data: {
       projects: input.projects.map(cleanProject),
       favorites: [...new Set(input.favorites)]
