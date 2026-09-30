@@ -1,5 +1,5 @@
 "use client";
-import { Blocks, Building2, Info, LogIn, LogOut, Mail, Menu, UserRound, Users, X } from "lucide-react";
+import { Blocks, Building2, Calculator, CircleHelp, FolderKanban, Home, Info, Languages, LogIn, LogOut, Mail, Menu, UserRound, Users, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { AboutDialog } from "./about-dialog";
@@ -98,19 +98,19 @@ export function AppHeader() {
                 onClick={() => jump("main-content", "home")}
                 className={itemClass("home")}
               >
-                {t("navigation.home")}
+                <Home className="me-2 inline" size={17} /> {t("navigation.home")}
               </button>
               <button
                 onClick={() => jump("projects", "projects")}
                 className={itemClass("projects")}
               >
-                {t("navigation.projects")}
+                <FolderKanban className="me-2 inline" size={17} /> {t("navigation.projects")}
               </button>
               <button
                 onClick={() => jump("room-preview", "preview")}
                 className={itemClass("preview")}
               >
-                {t("navigation.preview")}
+                <Calculator className="me-2 inline" size={17} /> {t("navigation.preview")}
               </button>
               <button
                 onClick={() => {
@@ -120,7 +120,7 @@ export function AppHeader() {
                 }}
                 className={itemClass("help")}
               >
-                {t("navigation.help")}
+                <CircleHelp className="me-2 inline" size={17} /> {t("navigation.help")}
               </button>
               <button
                 onClick={() => {
@@ -154,7 +154,7 @@ export function AppHeader() {
               </button>
             </nav>
             <label className="mt-auto border-t border-slate-200 pt-5 text-sm font-bold text-slate-700">
-              <span className="mb-2 block">{t("navigation.language")}</span>
+              <span className="mb-2 flex items-center gap-2"><Languages size={17} /> {t("navigation.language")}</span>
               <select
                 value={language}
                 onChange={(event) => setLanguage(event.target.value as Language)}

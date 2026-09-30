@@ -23,6 +23,10 @@ production variables and redeploy:
 - `AUTH_BOOTSTRAP_SUPER_ADMIN_EMAIL` and `AUTH_BOOTSTRAP_SUPER_ADMIN_PASSWORD`: a
   one-time initial super-administrator bootstrap. Use a unique email and a password of
   at least 12 characters, sign in once, then remove the password variable and redeploy.
+- `RESEND_API_KEY` and `AUTH_EMAIL_FROM`: server-only Resend API credential and a
+  verified sender address used for account verification and password-reset emails.
+  Set both in Vercel and redeploy. Email delivery stays disabled rather than simulated
+  when either value is absent.
 
 Use a durable database with backups and no automatic expiry/eviction of verification
 records. Do not share its credentials with the browser or prefix them `NEXT_PUBLIC_`.

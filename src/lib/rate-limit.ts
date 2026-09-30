@@ -6,6 +6,8 @@ export const ratePolicy = {
   revoke: [10, 60],
   document: [30, 60],
   login: [8, 300],
+  signup: [5, 3600],
+  "password-reset": [5, 3600],
   collaboration: [60, 60],
   comment: [20, 60],
   memberSearch: [30, 60],

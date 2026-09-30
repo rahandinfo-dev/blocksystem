@@ -6,6 +6,7 @@ import { permissions, roles, toSafeUser, type AuthSession, type Permission, type
 const scrypt = promisify(nodeScrypt) as (password: string, salt: string, keyLength: number, options: { N: number; r: number; p: number; maxmem: number }) => Promise<Buffer>;
 const userKey = (id: string) => `bs:auth:user:${id}`;
 const emailKey = (email: string) => `bs:auth:email:${email}`;
+const usernameKey = (username: string) => `bs:auth:username:${username}`;
 const sessionKey = (id: string) => `bs:auth:session:${id}`;
 const userIndex = "bs:auth:users";
 const projectMembersKey = (projectId: string) => `bs:auth:project:${projectId}:members`;
@@ -25,6 +26,9 @@ export function authEnvironment(env: NodeJS.ProcessEnv = process.env): AuthEnvir
 }
 export function validEmail(value: string) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && value.length <= 254; }
 export function normalizeEmail(value: string) { return value.trim().toLowerCase(); }
+const reservedUsernames = new Set(["admin", "administrator", "root", "system", "support", "blocksystem"]);
+export function normalizeUsername(value: string) { return value.trim().toLowerCase(); }
+export function validUsername(value: string) { return /^[a-z0-9](?:[a-z0-9._-]{1,29})$/.test(value) && !reservedUsernames.has(value); }
 export function hasPermission(role: Role, permission: Permission) { return permissions[role].includes(permission); }
 export function hasRole(role: Role, ...allowed: Role[]) { return allowed.includes(role); }
 export async function hashPassword(password: string) {
@@ -45,26 +49,30 @@ function safeUserRecord(raw: string | null): User | null {
   try {
     const user = JSON.parse(raw) as Partial<User>;
     if (!user || typeof user !== "object" || !validId(String(user.id)) || !validEmail(String(user.email)) || typeof user.displayName !== "string" || !roles.includes(user.role as Role) || !["ACTIVE", "DISABLED"].includes(String(user.status)) || typeof user.passwordHash !== "string" || typeof user.createdAt !== "string" || typeof user.updatedAt !== "string") return null;
+    user.username = validUsername(normalizeUsername(String(user.username ?? ""))) ? normalizeUsername(String(user.username)) : `legacy-${String(user.id).replace(/-/g, "").slice(0, 12)}`;
+    if (user.emailVerificationRequired === undefined) user.emailVerifiedAt ??= user.createdAt;
     return user as User;
   } catch { return null; }
 }
 async function getUserRecord(store: VerificationStore, id: string) { return validId(id) ? safeUserRecord(await store.authGet(userKey(id))) : null; }
 export async function getUserByEmail(store: VerificationStore, email: string) { const id = await store.authGet(emailKey(normalizeEmail(email))); return id ? getUserRecord(store, id) : null; }
+export async function getUserByUsername(store: VerificationStore, username: string) { const id = await store.authGet(usernameKey(normalizeUsername(username))); return id ? getUserRecord(store, id) : null; }
+export async function getUserByIdentifier(store: VerificationStore, identifier: string) { return identifier.includes("@") ? getUserByEmail(store, identifier) : getUserByUsername(store, identifier); }
 export async function getUser(store: VerificationStore, id: string) { return getUserRecord(store, id); }
 export async function listUsers(store: VerificationStore): Promise<SafeUser[]> { return (await Promise.all((await store.authMembers(userIndex)).map((id) => getUserRecord(store, id)))).filter((user): user is User => Boolean(user)).map(toSafeUser).sort((a, b) => a.createdAt.localeCompare(b.createdAt)); }
-export async function createUser(store: VerificationStore, input: { email: string; displayName: string; password: string; role: Role }): Promise<SafeUser> {
-  const email = normalizeEmail(input.email); const displayName = input.displayName.trim().slice(0, 120);
-  if (!validEmail(email) || !displayName || !roles.includes(input.role)) throw new Error("Invalid user");
+export async function createUser(store: VerificationStore, input: { email: string; username?: string; displayName: string; password: string; role: Role; emailVerified?: boolean }): Promise<SafeUser> {
+  const id = randomUUID(); const email = normalizeEmail(input.email); const displayName = input.displayName.trim().slice(0, 120); const username = normalizeUsername(input.username ?? `user-${id.replace(/-/g, "").slice(0, 12)}`);
+  if (!validEmail(email) || !validUsername(username) || !displayName || !roles.includes(input.role)) throw new Error("Invalid user");
   const passwordHash = await hashPassword(input.password);
-  const id = randomUUID();
   if (!(await store.authSetIfAbsent(emailKey(email), id))) throw new Error("User exists");
+  if (!(await store.authSetIfAbsent(usernameKey(username), id))) { await store.authDelete(emailKey(email)); throw new Error("Username exists"); }
   const now = new Date().toISOString();
-  const user: User = { id, email, displayName, role: input.role, status: "ACTIVE", passwordHash, createdAt: now, updatedAt: now };
+  const user: User = { id, email, username, displayName, role: input.role, status: "ACTIVE", passwordHash, ...(input.emailVerified ? { emailVerifiedAt: now } : { emailVerificationRequired: true }), createdAt: now, updatedAt: now };
   try {
     await store.authSet(userKey(id), JSON.stringify(user));
     await store.authAddMember(userIndex, id);
   } catch (error) {
-    await store.authDelete(emailKey(email));
+    await store.authDelete(emailKey(email)); await store.authDelete(usernameKey(username));
     throw error;
   }
   return toSafeUser(user);
@@ -76,10 +84,22 @@ export async function updateUser(store: VerificationStore, id: string, patch: { 
   if (patch.status !== undefined) { if (!["ACTIVE", "DISABLED"].includes(patch.status)) throw new Error("Invalid user"); user.status = patch.status; }
   user.updatedAt = new Date().toISOString(); await store.authSet(userKey(id), JSON.stringify(user)); return toSafeUser(user);
 }
+export async function verifyUserEmail(store: VerificationStore, id: string) {
+  const user = await getUserRecord(store, id); if (!user) return null;
+  user.emailVerifiedAt = new Date().toISOString(); user.updatedAt = user.emailVerifiedAt;
+  user.emailVerificationRequired = false;
+  await store.authSet(userKey(id), JSON.stringify(user)); return toSafeUser(user);
+}
+export async function resetUserPassword(store: VerificationStore, id: string, password: string) {
+  const user = await getUserRecord(store, id); if (!user) return false;
+  user.passwordHash = await hashPassword(password); user.updatedAt = new Date().toISOString();
+  await store.authSet(userKey(id), JSON.stringify(user));
+  return true;
+}
 export async function ensureBootstrapSuperAdmin(store: VerificationStore, env = authEnvironment()) {
   if (!env.bootstrapEmail || !env.bootstrapPassword) return null;
   const existing = await getUserByEmail(store, env.bootstrapEmail);
-  return existing ? toSafeUser(existing) : createUser(store, { email: env.bootstrapEmail, displayName: "Super administrator", password: env.bootstrapPassword, role: "SUPER_ADMIN" });
+  return existing ? toSafeUser(existing) : createUser(store, { email: env.bootstrapEmail, username: "bootstrap-admin", displayName: "Super administrator", password: env.bootstrapPassword, role: "SUPER_ADMIN", emailVerified: true });
 }
 /** Existing projects remain accessible until explicitly assigned; newly issued records are assigned. */
 export async function grantProjectAccess(store: VerificationStore, projectId: string, userId: string) {

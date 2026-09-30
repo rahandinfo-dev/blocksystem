@@ -7,7 +7,7 @@ export type Permission =
   | "documents.read" | "documents.create" | "documents.revoke"
   | "reports.generate" | "verification.read" | "verification.manage"
   | "backups.create" | "backups.restore" | "audit.read" | "system.health.read" | "system.admin";
-export type User = { id: string; email: string; displayName: string; role: Role; status: AccountStatus; passwordHash: string; createdAt: string; updatedAt: string };
+export type User = { id: string; email: string; username: string; displayName: string; role: Role; status: AccountStatus; passwordHash: string; emailVerifiedAt?: string; emailVerificationRequired?: boolean; createdAt: string; updatedAt: string };
 export type SafeUser = Omit<User, "passwordHash">;
 export type AuthSession = { id: string; userId: string; createdAt: string; expiresAt: string; revokedAt?: string };
 export const permissions: Record<Role, readonly Permission[]> = {
@@ -17,4 +17,4 @@ export const permissions: Record<Role, readonly Permission[]> = {
   ENGINEER: ["projects.read","projects.create","projects.update","documents.read","documents.create","reports.generate","verification.read","backups.create"],
   VIEWER: ["projects.read","documents.read","reports.generate","verification.read"],
 };
-export function toSafeUser(user: User): SafeUser { return { id: user.id, email: user.email, displayName: user.displayName, role: user.role, status: user.status, createdAt: user.createdAt, updatedAt: user.updatedAt }; }
+export function toSafeUser(user: User): SafeUser { return { id: user.id, email: user.email, username: user.username, displayName: user.displayName, role: user.role, status: user.status, emailVerifiedAt: user.emailVerifiedAt, emailVerificationRequired: user.emailVerificationRequired, createdAt: user.createdAt, updatedAt: user.updatedAt }; }
