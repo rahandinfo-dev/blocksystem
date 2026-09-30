@@ -1,9 +1,10 @@
 "use client";
 
-import { Edges, OrbitControls, Text } from "@react-three/drei";
+import { Edges, Line, OrbitControls, Text } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
   Expand,
+  Download,
   Eye,
   EyeOff,
   Focus,
@@ -16,7 +17,7 @@ import {
 } from "lucide-react";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { Box3, DoubleSide, Group, PerspectiveCamera, TOUCH, Vector3 } from "three";
+import { Box3, DoubleSide, Group, OrthographicCamera, PerspectiveCamera, Plane, TOUCH, Vector3 } from "three";
 import type {
   BlockDefinition,
   NumericOpening,
@@ -29,6 +30,16 @@ import {
   createWallSolidSegments,
   type WallOpeningRect,
 } from "@/features/calculator/lib/wall-opening-geometry";
+import {
+  clampSectionPosition,
+  displayDistance,
+  explodedOffset,
+  screenshotFilename,
+  worldDistance,
+  type DistanceUnit,
+  type SectionAxis,
+  type WorldPoint,
+} from "@/features/calculator/lib/three-workspace";
 
 export type PreviewWallId = "front" | "back" | "right" | "left";
 export type PreviewSelection =
@@ -45,6 +56,7 @@ interface Props {
   block: BlockDefinition;
   selection?: PreviewSelection;
   onSelectionChange?: (selection: PreviewSelection) => void;
+  validationIds?: string[];
 }
 
 export const wallName: Record<PreviewWallId, string> = {
@@ -119,13 +131,19 @@ function Opening({
   selected,
   onSelect,
   onMeasurementsReady,
+  xray,
+  wireframe,
+  clippingPlanes,
 }: {
   item: OpeningModel;
   thickness: number;
   showMeasurements: boolean;
   selected: boolean;
-  onSelect: () => void;
+  onSelect: (point: WorldPoint) => void;
   onMeasurementsReady: () => void;
+  xray: boolean;
+  wireframe: boolean;
+  clippingPlanes: Plane[];
 }) {
   const { opening, kind } = item;
   if (opening.width <= 0 || opening.height <= 0) return null;
@@ -158,13 +176,13 @@ function Opening({
       position={[item.x, y, 0]}
       onClick={(event) => {
         event.stopPropagation();
-        onSelect();
+        onSelect({ x: event.point.x, y: event.point.y, z: event.point.z });
       }}
     >
       {kind === "door" ? (
         <mesh castShadow receiveShadow>
           <boxGeometry args={[innerWidth, innerHeight, panelDepth]} />
-          <meshStandardMaterial color={panelColor} roughness={0.7} />
+          <meshStandardMaterial color={panelColor} roughness={0.7} wireframe={wireframe} transparent={xray} opacity={xray ? 0.36 : 1} clippingPlanes={clippingPlanes} />
         </mesh>
       ) : null}
       {kind === "window" ? (
@@ -178,6 +196,8 @@ function Opening({
             depthWrite={false}
             roughness={0.18}
             metalness={0.05}
+            wireframe={wireframe}
+            clippingPlanes={clippingPlanes}
           />
         </mesh>
       ) : null}
@@ -188,7 +208,7 @@ function Opening({
           castShadow
         >
           <boxGeometry args={[verticalFrame, opening.height, frameDepth]} />
-          <meshStandardMaterial color={selected ? "#efb54a" : "#EDE6CC"} />
+          <meshStandardMaterial color={selected ? "#efb54a" : "#EDE6CC"} wireframe={wireframe} transparent={xray} opacity={xray ? 0.38 : 1} clippingPlanes={clippingPlanes} />
         </mesh>
       ))}
       {[-1, 1].map((side) => (
@@ -198,18 +218,18 @@ function Opening({
           castShadow
         >
           <boxGeometry args={[innerWidth, horizontalFrame, frameDepth]} />
-          <meshStandardMaterial color={selected ? "#efb54a" : "#EDE6CC"} />
+          <meshStandardMaterial color={selected ? "#efb54a" : "#EDE6CC"} wireframe={wireframe} transparent={xray} opacity={xray ? 0.38 : 1} clippingPlanes={clippingPlanes} />
         </mesh>
       ))}
       {kind === "window" ? (
         <>
           <mesh castShadow>
             <boxGeometry args={[Math.min(verticalFrame * 0.72, innerWidth), innerHeight, frameDepth]} />
-            <meshStandardMaterial color={selected ? "#efb54a" : "#EDE6CC"} />
+            <meshStandardMaterial color={selected ? "#efb54a" : "#EDE6CC"} wireframe={wireframe} transparent={xray} opacity={xray ? 0.38 : 1} clippingPlanes={clippingPlanes} />
           </mesh>
           <mesh castShadow>
             <boxGeometry args={[innerWidth, Math.min(horizontalFrame * 0.72, innerHeight), frameDepth]} />
-            <meshStandardMaterial color={selected ? "#efb54a" : "#EDE6CC"} />
+            <meshStandardMaterial color={selected ? "#efb54a" : "#EDE6CC"} wireframe={wireframe} transparent={xray} opacity={xray ? 0.38 : 1} clippingPlanes={clippingPlanes} />
           </mesh>
         </>
       ) : null}
@@ -220,7 +240,7 @@ function Opening({
             position={[opening.width * 0.28, 0, side * (panelDepth / 2 + 0.012)]}
           >
             <sphereGeometry args={[knobSize, 12, 12]} />
-            <meshStandardMaterial color="#EDE6CC" metalness={0.25} roughness={0.45} />
+            <meshStandardMaterial color="#EDE6CC" metalness={0.25} roughness={0.45} wireframe={wireframe} transparent={xray} opacity={xray ? 0.45 : 1} clippingPlanes={clippingPlanes} />
           </mesh>
         ))
       ) : null}
@@ -253,6 +273,11 @@ function WallSurface({
   selected,
   opacity,
   onSelect,
+  xray,
+  wireframe,
+  clippingPlanes,
+  visible,
+  invalid,
 }: {
   id: PreviewWallId;
   length: number;
@@ -263,7 +288,12 @@ function WallSurface({
   rotation: [number, number, number];
   selected: boolean;
   opacity: number;
-  onSelect: (id: PreviewWallId) => void;
+  onSelect: (id: PreviewWallId, point: WorldPoint) => void;
+  xray: boolean;
+  wireframe: boolean;
+  clippingPlanes: Plane[];
+  visible: boolean;
+  invalid: boolean;
 }) {
   const segments = useMemo(
     () =>
@@ -288,14 +318,16 @@ function WallSurface({
     : isFront
       ? "#0F2053"
       : "#c6a36f";
-  const edgeColor = isFront ? "#EDE6CC" : "#8d714b";
+  const edgeColor = invalid ? "#dc2626" : isFront ? "#EDE6CC" : "#8d714b";
   return (
     <group
       position={position}
       rotation={rotation}
+      name={`wall:${id}`}
+      visible={visible}
       onClick={(event) => {
         event.stopPropagation();
-        onSelect(id);
+        onSelect(id, { x: event.point.x, y: event.point.y, z: event.point.z });
       }}
     >
       {segments.map((segment, index) => (
@@ -309,8 +341,10 @@ function WallSurface({
           <meshStandardMaterial
             color={wallColor}
             roughness={0.88}
-            transparent={opacity < 1}
-            opacity={opacity}
+            transparent={opacity < 1 || xray}
+            opacity={xray ? Math.min(opacity, 0.28) : opacity}
+            wireframe={wireframe}
+            clippingPlanes={clippingPlanes}
           />
           <Edges color={edgeColor} threshold={20} />
         </mesh>
@@ -321,12 +355,31 @@ function WallSurface({
 
 function fitRenderedModel(group: Group, orbit: OrbitControlsImpl, width: number, height: number, singleWall: boolean) {
     const camera = orbit.object;
-    if (!(camera instanceof PerspectiveCamera) || width <= 0 || height <= 0) return false;
+    if (!(camera instanceof PerspectiveCamera || camera instanceof OrthographicCamera) || width <= 0 || height <= 0) return false;
     // This group contains the actual walls, frames, openings and measurements.
     // The decorative ground is deliberately outside its measured bounds.
     group.updateWorldMatrix(true, true);
     const bounds = new Box3().setFromObject(group);
     if (bounds.isEmpty() || !Number.isFinite(bounds.min.lengthSq() + bounds.max.lengthSq())) return false;
+    if (camera instanceof OrthographicCamera) {
+      const target = bounds.getCenter(new Vector3());
+      const size = bounds.getSize(new Vector3());
+      const aspect = width / height;
+      const halfHeight = Math.max(0.5, size.y * 0.72, size.x / Math.max(aspect, 0.01) * 0.62, size.z * 0.72) * 1.18;
+      camera.left = -halfHeight * aspect;
+      camera.right = halfHeight * aspect;
+      camera.top = halfHeight;
+      camera.bottom = -halfHeight;
+      camera.near = Math.max(0.005, Math.min(0.05, size.length() / 1000));
+      camera.far = Math.max(100, size.length() * 20);
+      camera.position.copy(target).add(new Vector3(1, 0.72, singleWall ? 1 : 1.2).normalize().multiplyScalar(Math.max(8, size.length() * 2)));
+      camera.updateProjectionMatrix();
+      orbit.target.copy(target);
+      orbit.minDistance = 0.08;
+      orbit.maxDistance = Math.max(8, size.length() * 6);
+      orbit.update();
+      return true;
+    }
     camera.aspect = width / height;
     const fitted = perspectiveBoundsFit(
       bounds,
@@ -356,12 +409,16 @@ function FitRenderedModel({
   fitView: fitViewRef,
   geometryKey,
   singleWall,
+  selected,
+  fitSelection: fitSelectionRef,
 }: {
   model: React.RefObject<Group | null>;
   controls: React.RefObject<OrbitControlsImpl | null>;
   fitView: React.RefObject<(() => void) | null>;
   geometryKey: string;
   singleWall: boolean;
+  selected: PreviewSelection;
+  fitSelection: React.RefObject<(() => void) | null>;
 }) {
   const size = useThree((state) => state.size);
   const lastFit = useRef("");
@@ -369,8 +426,17 @@ function FitRenderedModel({
 
   useEffect(() => {
     fitViewRef.current = () => { requested.current = true; };
-    return () => { fitViewRef.current = null; };
-  }, [fitViewRef]);
+    fitSelectionRef.current = () => {
+      const model = modelRef.current;
+      const orbit = controlsRef.current;
+      if (!model || !orbit) return;
+      const name = selected.type === "wall" ? `wall:${selected.id}` : `opening:${selected.id}`;
+      const selectedObject = model.getObjectByName(name);
+      if (!selectedObject) return;
+      fitRenderedModel(selectedObject as Group, orbit, size.width, size.height, false);
+    };
+    return () => { fitViewRef.current = null; fitSelectionRef.current = null; };
+  }, [controlsRef, fitSelectionRef, fitViewRef, modelRef, selected, size.height, size.width]);
 
   useFrame(() => {
     const nextFit = `${size.width}:${size.height}:${geometryKey}`;
@@ -396,7 +462,17 @@ function Scene({
   cutaway,
   autoRotate,
   fitView,
+  fitSelection,
   choose,
+  xray,
+  wireframe,
+  exploded,
+  section,
+  hidden,
+  measureMode,
+  measurementPoints,
+  recordMeasurement,
+  validationIds,
 }: {
   unit: NumericUnit;
   block: BlockDefinition;
@@ -407,7 +483,17 @@ function Scene({
   cutaway: boolean;
   autoRotate: boolean;
   fitView: React.RefObject<(() => void) | null>;
+  fitSelection: React.RefObject<(() => void) | null>;
   choose: (selection: PreviewSelection) => void;
+  xray: boolean;
+  wireframe: boolean;
+  exploded: boolean;
+  section: { enabled: boolean; axis: SectionAxis; position: number };
+  hidden: Set<string>;
+  measureMode: boolean;
+  measurementPoints: WorldPoint[];
+  recordMeasurement: (point: WorldPoint) => void;
+  validationIds: Set<string>;
 }) {
   const model = useRef<Group>(null);
   const length = unit.length;
@@ -419,6 +505,12 @@ function Scene({
     Math.min(length, width) * 0.18,
   );
   const singleWall = unit.kind === "wall";
+  const modelSize = Math.max(length, width, height);
+  const sectionPlane = useMemo(() => {
+    if (!section.enabled) return [];
+    const normal = section.axis === "x" ? new Vector3(1, 0, 0) : section.axis === "y" ? new Vector3(0, 1, 0) : new Vector3(0, 0, 1);
+    return [new Plane(normal, -section.position)];
+  }, [section]);
   const transforms = useMemo(() => wallTransforms(length, width), [length, width]);
   const openings = useMemo<OpeningModel[]>(() => {
     const assignedSide = (opening: NumericOpening): PreviewWallId => {
@@ -520,6 +612,20 @@ function Scene({
       : cutaway && id === "back"
         ? 0.16
         : 1;
+  const wallVisible = (id: PreviewWallId) => {
+    if (hidden.has(id)) return false;
+    if (!isolated) return true;
+    return selected.type === "wall" ? selected.id === id : selected.wallId === id;
+  };
+  const positionedWall = (id: PreviewWallId) => {
+    const base = transforms[id].position;
+    const offset = exploded ? explodedOffset(`wall:${id}`, Math.max(length, width, height) * 0.12) : [0, 0, 0] as [number, number, number];
+    return [base[0] + offset[0], base[1] + offset[1], base[2] + offset[2]] as [number, number, number];
+  };
+  const chooseAtPoint = (next: PreviewSelection, point: WorldPoint) => {
+    choose(next);
+    if (measureMode) recordMeasurement(point);
+  };
   // Values, rather than object identities, keep ordinary selection/language
   // rerenders from interrupting an orbit or an interior camera preset.
   const geometryKey = JSON.stringify([
@@ -549,12 +655,17 @@ function Scene({
         length={transforms.front.length}
         height={height}
         thickness={thickness}
-        position={transforms.front.position}
+        position={positionedWall("front")}
         rotation={transforms.front.rotation}
         openings={openingsByWall.front}
         selected={selected.type === "wall" && selected.id === "front"}
         opacity={wallOpacity("front")}
-        onSelect={(id) => choose({ type: "wall", id })}
+        onSelect={(id, point) => chooseAtPoint({ type: "wall", id }, point)}
+        xray={xray}
+        wireframe={wireframe}
+        clippingPlanes={sectionPlane}
+        visible={wallVisible("front")}
+        invalid={validationIds.has(unit.id)}
       />
       {!singleWall ? (
         <>
@@ -563,55 +674,73 @@ function Scene({
             length={transforms.right.length}
             height={height}
             thickness={thickness}
-            position={transforms.right.position}
+            position={positionedWall("right")}
             rotation={transforms.right.rotation}
             openings={openingsByWall.right}
             selected={selected.type === "wall" && selected.id === "right"}
             opacity={wallOpacity("right")}
-            onSelect={(id) => choose({ type: "wall", id })}
+            onSelect={(id, point) => chooseAtPoint({ type: "wall", id }, point)}
+            xray={xray}
+            wireframe={wireframe}
+            clippingPlanes={sectionPlane}
+            visible={wallVisible("right")}
+            invalid={validationIds.has(unit.id)}
           />
           <WallSurface
             id="back"
             length={transforms.back.length}
             height={height}
             thickness={thickness}
-            position={transforms.back.position}
+            position={positionedWall("back")}
             rotation={transforms.back.rotation}
             openings={openingsByWall.back}
             selected={selected.type === "wall" && selected.id === "back"}
             opacity={wallOpacity("back")}
-            onSelect={(id) => choose({ type: "wall", id })}
+            onSelect={(id, point) => chooseAtPoint({ type: "wall", id }, point)}
+            xray={xray}
+            wireframe={wireframe}
+            clippingPlanes={sectionPlane}
+            visible={wallVisible("back")}
+            invalid={validationIds.has(unit.id)}
           />
           <WallSurface
             id="left"
             length={transforms.left.length}
             height={height}
             thickness={thickness}
-            position={transforms.left.position}
+            position={positionedWall("left")}
             rotation={transforms.left.rotation}
             openings={openingsByWall.left}
             selected={selected.type === "wall" && selected.id === "left"}
             opacity={wallOpacity("left")}
-            onSelect={(id) => choose({ type: "wall", id })}
+            onSelect={(id, point) => chooseAtPoint({ type: "wall", id }, point)}
+            xray={xray}
+            wireframe={wireframe}
+            clippingPlanes={sectionPlane}
+            visible={wallVisible("left")}
+            invalid={validationIds.has(unit.id)}
           />
         </>
       ) : null}
       {openings.map((item) => (
-        <group key={item.id} position={item.position} rotation={item.rotation}>
+        <group key={item.id} name={`opening:${item.id}`} visible={!hidden.has(item.id) && (!isolated || selected.type !== "wall" || selected.id === item.wallId)} position={(exploded ? (() => { const offset = explodedOffset(`opening:${item.kind}`, Math.max(length, width, height) * 0.12); return [item.position[0] + offset[0], item.position[1] + offset[1], item.position[2] + offset[2]] as [number, number, number]; })() : item.position)} rotation={item.rotation}>
           <Opening
             item={item}
             thickness={thickness}
             showMeasurements={labels}
             selected={selected.type === item.kind && selected.id === item.id}
             onMeasurementsReady={measurementsReady}
-            onSelect={() =>
-              choose({
+            onSelect={(point) =>
+              chooseAtPoint({
                 type: item.kind,
                 id: item.id,
                 wallId: item.wallId,
                 opening: item.opening,
-              })
+              }, point)
             }
+            xray={xray}
+            wireframe={wireframe}
+            clippingPlanes={sectionPlane}
           />
         </group>
       ))}
@@ -643,6 +772,12 @@ function Scene({
         </Suspense>
       ) : null}
       </group>
+      {measurementPoints.length === 2 ? (
+        <>
+          <Line points={measurementPoints.map((point) => [point.x, point.y, point.z])} color="#dc2626" lineWidth={2} />
+          <Text position={[(measurementPoints[0].x + measurementPoints[1].x) / 2, (measurementPoints[0].y + measurementPoints[1].y) / 2 + 0.12, (measurementPoints[0].z + measurementPoints[1].z) / 2]} fontSize={Math.max(0.1, modelSize / 42)} color="#991b1b">{worldDistance(measurementPoints[0], measurementPoints[1]).toFixed(3)} m</Text>
+        </>
+      ) : null}
       <OrbitControls
         ref={controls}
         makeDefault
@@ -662,6 +797,8 @@ function Scene({
         fitView={fitView}
         geometryKey={geometryKey}
         singleWall={singleWall}
+        selected={selected}
+        fitSelection={fitSelection}
       />
     </>
   );
@@ -672,16 +809,28 @@ export function RoomThreeScene({
   block,
   selection,
   onSelectionChange,
+  validationIds = [],
 }: Props) {
   const { t } = useI18n();
   const controls = useRef<OrbitControlsImpl>(null);
   const fitView = useRef<(() => void) | null>(null);
+  const fitSelection = useRef<(() => void) | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [labels, setLabels] = useState(true);
   const [fullScreen, setFullScreen] = useState(false);
   const [isolated, setIsolated] = useState(false);
   const [cutaway, setCutaway] = useState(false);
   const [autoRotate, setAutoRotate] = useState(false);
+  const [xray, setXray] = useState(false);
+  const [wireframe, setWireframe] = useState(false);
+  const [exploded, setExploded] = useState(false);
+  const [hidden, setHidden] = useState<Set<string>>(() => new Set());
+  const [measureMode, setMeasureMode] = useState(false);
+  const [measurementPoints, setMeasurementPoints] = useState<WorldPoint[]>([]);
+  const [distanceUnit, setDistanceUnit] = useState<DistanceUnit>("m");
+  const [section, setSection] = useState<{ enabled: boolean; axis: SectionAxis; position: number }>({ enabled: false, axis: "z", position: 0 });
+  const [projection, setProjection] = useState<"perspective" | "orthographic">("perspective");
+  const [screenshotError, setScreenshotError] = useState(false);
   const [toolbarOpen, setToolbarOpen] = useState(false);
   const [internalSelection, setInternalSelection] = useState<PreviewSelection>({
     type: "wall",
@@ -737,11 +886,25 @@ export function RoomThreeScene({
     setCamera(0, unit.height * 0.52, interiorZ);
   };
   const fit = () => fitView.current?.();
+  const recordMeasurement = (point: WorldPoint) => {
+    if (!measureMode) return;
+    setMeasurementPoints((current) => current.length >= 2 ? [point] : [...current, point]);
+  };
   useEffect(() => {
     const listener = () => setFullScreen(Boolean(document.fullscreenElement));
     document.addEventListener("fullscreenchange", listener);
     return () => document.removeEventListener("fullscreenchange", listener);
   }, []);
+  useEffect(() => {
+    const shortcut = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement) return;
+      if (event.key === "Escape") { setMeasureMode(false); setMeasurementPoints([]); }
+      if (event.key.toLowerCase() === "f") fit();
+      if (event.key.toLowerCase() === "m") { setMeasureMode((value) => !value); setMeasurementPoints([]); }
+    };
+    window.addEventListener("keydown", shortcut);
+    return () => window.removeEventListener("keydown", shortcut);
+  });
   const choose = (next: PreviewSelection) => {
     setInternalSelection(next);
     onSelectionChange?.(next);
@@ -760,6 +923,21 @@ export function RoomThreeScene({
     if (!orbit) return;
     orbit.object.position.sub(orbit.target).multiplyScalar(scale).add(orbit.target);
     orbit.update();
+  };
+  const hideSelection = () => setHidden((current) => new Set(current).add(activeSelection.id));
+  const captureScreenshot = () => {
+    const canvas = containerRef.current?.querySelector("canvas");
+    if (!canvas || typeof canvas.toBlob !== "function") { setScreenshotError(true); return; }
+    canvas.toBlob((blob) => {
+      if (!blob) { setScreenshotError(true); return; }
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = screenshotFilename(unit.name);
+      link.click();
+      URL.revokeObjectURL(url);
+      setScreenshotError(false);
+    }, "image/png");
   };
   const cameraOptions = useMemo(() => ({ fov: 42 }), []);
   const toolButton = "flex min-h-11 min-w-11 items-center justify-center gap-1 rounded bg-white px-2 py-2 text-xs font-bold text-slate-900 shadow-sm";
@@ -803,6 +981,9 @@ export function RoomThreeScene({
           )}
           {t("preview.measurements")}
         </button>
+        <button type="button" onClick={() => { setMeasureMode((value) => !value); setMeasurementPoints([]); }} className={toolButton} aria-pressed={measureMode}>
+          {t("three.measure")}
+        </button>
         <button
           type="button"
           onClick={() => setIsolated((value) => !value)}
@@ -812,6 +993,8 @@ export function RoomThreeScene({
           <Layers size={14} />
           {t("preview.isolate")}
         </button>
+        <button type="button" onClick={hideSelection} className={toolButton}>{t("three.hide")}</button>
+        <button type="button" onClick={() => { setHidden(new Set()); setIsolated(false); }} className={toolButton}>{t("three.showAll")}</button>
         <button
           type="button"
           onClick={() => setCutaway((value) => !value)}
@@ -821,6 +1004,10 @@ export function RoomThreeScene({
           <Scissors size={14} />
           {t("preview.cutaway")}
         </button>
+        <button type="button" onClick={() => setExploded((value) => !value)} className={toolButton} aria-pressed={exploded}>{t("three.exploded")}</button>
+        <button type="button" onClick={() => setExploded(false)} className={toolButton}>{t("three.resetExploded")}</button>
+        <button type="button" onClick={() => setXray((value) => !value)} className={toolButton} aria-pressed={xray}>{t("three.xray")}</button>
+        <button type="button" onClick={() => setWireframe((value) => !value)} className={toolButton} aria-pressed={wireframe}>{t("three.wireframe")}</button>
         <button
           type="button"
           onClick={() => setAutoRotate((value) => !value)}
@@ -837,6 +1024,7 @@ export function RoomThreeScene({
           <Expand size={14} />
           {t(fullScreen ? "preview.exitFullscreen" : "preview.fullscreen")}
         </button>
+        <button type="button" onClick={captureScreenshot} className={toolButton}><Download size={14} />{t("three.screenshot")}</button>
       </div>
       <div className="flex w-full flex-wrap gap-1">
         <button
@@ -844,8 +1032,10 @@ export function RoomThreeScene({
           onClick={fit}
           className={toolButton}
         >
-          3D
+          {t("three.view")}
         </button>
+        <button type="button" onClick={() => fitSelection.current?.()} className={toolButton}>{t("three.fitSelection")}</button>
+        <button type="button" onClick={fit} className={toolButton}>{t("three.resetCamera")}</button>
         <button
           type="button"
           onClick={() => setCamera(0, modelSize * 1.9, target.z + 0.01)}
@@ -890,6 +1080,9 @@ export function RoomThreeScene({
         >
           {t("preview.interior")}
         </button>
+        <button type="button" onClick={() => setCamera(modelSize * 1.55, modelSize * 1.3, target.z - modelSize * 1.55)} className={toolButton}>{t("three.isometric")}</button>
+        <button type="button" onClick={() => setCamera(0, -modelSize * 1.3, target.z + 0.01)} className={toolButton}>{t("three.bottom")}</button>
+        <button type="button" onClick={() => setProjection((value) => value === "perspective" ? "orthographic" : "perspective")} className={toolButton} aria-pressed={projection === "orthographic"}>{t(projection === "orthographic" ? "three.orthographic" : "three.perspective")}</button>
         <button
           type="button"
           onClick={() => zoom(1.16)}
@@ -907,12 +1100,19 @@ export function RoomThreeScene({
           <Plus size={15} />
         </button>
       </div>
+      <div className="mt-1 grid w-full gap-1 rounded bg-white/70 p-1 text-xs text-slate-800">
+        <button type="button" onClick={() => setSection((current) => ({ ...current, enabled: !current.enabled }))} className={toolButton} aria-pressed={section.enabled}>{t("three.section")}</button>
+        {section.enabled ? <div className="flex flex-wrap items-center gap-2 p-1"><label className="flex items-center gap-1">{t("three.sectionAxis")}<select value={section.axis} onChange={(event) => setSection((current) => ({ ...current, axis: event.target.value as SectionAxis }))}><option value="x">X</option><option value="y">Y</option><option value="z">Z</option></select></label><label className="flex min-w-40 flex-1 items-center gap-1"><span>{t("three.sectionPosition")}</span><input className="min-w-20 flex-1" type="range" min={-modelSize} max={modelSize} step="0.01" value={section.position} onChange={(event) => setSection((current) => ({ ...current, position: clampSectionPosition(Number(event.target.value), modelSize) }))} /></label><button type="button" onClick={() => setSection((current) => ({ ...current, enabled: false, position: 0 }))} className={toolButton}>{t("three.resetSection")}</button></div> : null}
+      </div>
       </div> : null}</div>
       <Canvas
+        key={projection}
         shadows
         frameloop={autoRotate ? "always" : "demand"}
         dpr={[1, 1.75]}
         camera={cameraOptions}
+        orthographic={projection === "orthographic"}
+        gl={{ antialias: true, localClippingEnabled: true, preserveDrawingBuffer: true }}
         resize={{ scroll: false, debounce: 0 }}
         style={{ height: "100%", touchAction: "none" }}
         fallback={<p>{t("preview.webgl")}</p>}
@@ -927,9 +1127,22 @@ export function RoomThreeScene({
           cutaway={cutaway}
           autoRotate={autoRotate}
           fitView={fitView}
+          fitSelection={fitSelection}
           choose={choose}
+          xray={xray}
+          wireframe={wireframe}
+          exploded={exploded}
+          section={section}
+          hidden={hidden}
+          measureMode={measureMode}
+          measurementPoints={measurementPoints}
+          recordMeasurement={recordMeasurement}
+          validationIds={new Set(validationIds)}
         />
       </Canvas>
+      <div className="sr-only" aria-live="polite">{measureMode ? t("three.measureHint") : ""}</div>
+      {measurementPoints.length === 2 ? <div className="three-measurement" dir="ltr"><span>{t("three.measurement")}: {displayDistance(worldDistance(measurementPoints[0], measurementPoints[1]), distanceUnit).toFixed(distanceUnit === "m" ? 3 : 1)}</span><label className="sr-only" htmlFor="three-distance-unit">{t("three.worldUnits")}</label><select id="three-distance-unit" value={distanceUnit} onChange={(event) => setDistanceUnit(event.target.value as DistanceUnit)}><option value="m">m</option><option value="cm">cm</option><option value="mm">mm</option></select><button type="button" onClick={() => setMeasurementPoints([])}>{t("three.clearMeasure")}</button></div> : null}
+      {screenshotError ? <p className="three-toast" role="alert">{t("three.screenshotUnavailable")}</p> : null}
     </div>
   );
 }

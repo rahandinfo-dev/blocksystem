@@ -687,7 +687,7 @@ export function Calculator() {
         </form>
         <div className="space-y-6">
           <ResultsDashboard result={result} error={error} />
-          <WallPreview units={numericUnits} block={selectedBlock} />
+          <WallPreview units={numericUnits} block={selectedBlock} data={data} />
         </div>
       </div>
       <div className="print:hidden space-y-6">

@@ -400,6 +400,25 @@ select[dir="ltr"] {
 }
 
 .three-toolbar-panel button { min-width: 44px; min-height: 44px; }
+.three-measurement, .three-toast {
+  position: absolute;
+  z-index: 3;
+  inset-inline-start: 0.75rem;
+  bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: calc(100% - 1.5rem);
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.5rem;
+  background: rgb(255 253 245 / 94%);
+  color: var(--brand-navy);
+  box-shadow: 0 4px 16px rgb(15 32 83 / 18%);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.three-measurement select, .three-measurement button { min-height: 30px; min-width: 0; padding: 0.2rem 0.4rem; font-size: 0.75rem; }
+.three-toast { color: #991b1b; }
 .three-workspace :focus-visible { outline-color: #d59c20; }
 
 /* The canvas is the entire small-screen surface. These siblings only overlay it. */
