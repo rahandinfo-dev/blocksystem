@@ -18,6 +18,11 @@ production variables and redeploy:
 - `VERIFICATION_ADMIN_SECRET`: randomly generated secret of at least 32 characters.
 - `VERIFICATION_PUBLIC_ORIGIN`: permanent canonical HTTPS origin, e.g.
   `https://your-project.example`. No path, credentials, query or fragment.
+- `AUTH_SESSION_SECRET`: a separate random server-only value of at least 32 characters
+  used only to sign persistent authentication session identifiers.
+- `AUTH_BOOTSTRAP_SUPER_ADMIN_EMAIL` and `AUTH_BOOTSTRAP_SUPER_ADMIN_PASSWORD`: a
+  one-time initial super-administrator bootstrap. Use a unique email and a password of
+  at least 12 characters, sign in once, then remove the password variable and redeploy.
 
 Use a durable database with backups and no automatic expiry/eviction of verification
 records. Do not share its credentials with the browser or prefix them `NEXT_PUBLIC_`.
@@ -39,12 +44,15 @@ unneeded browser permissions. A static CSP is intentionally not set: Next runtim
 scripts, the existing 3D renderer and QR/PDF workflow need a nonce-based policy;
 an unsafe guessed CSP would be worse than these compatible headers.
 
-The document centre's administrator sign-in uses the admin secret over HTTPS to
-obtain a signed, one-hour, HttpOnly, Secure, SameSite=Strict cookie. Only administrators
-can list private snapshots, issue documents, export their PDFs or revoke records.
-This is a single-organisation administrator role, not a multi-tenant user account
-system. Distribute the secret only to trusted issuers. Rotate it to invalidate all
-sessions. Public pages are read-only and contain an explicit metadata allowlist.
+Phase 11 adds persistent user accounts and server-enforced roles. Authentication uses
+salted scrypt password hashes and a twelve-hour, HttpOnly, Secure-in-production,
+SameSite=Strict server session. Sessions are revoked on sign-out and disabled accounts
+cannot retain access. `SUPER_ADMIN`, `ADMIN`, `MANAGER`, `ENGINEER` and `VIEWER` roles
+are centrally permission-checked for private documents, audit, diagnostics and user
+management. Existing `VERIFICATION_ADMIN_SECRET` sessions remain an intentional
+temporary super-administrator compatibility path while organisations migrate; remove
+that operational dependency after administrators have been created. Never put any
+authentication setting in `NEXT_PUBLIC_*`, a URL, a QR code or browser storage.
 
 Without configuration, issuance fails closed and syntactically valid public tokens
 show **verification unavailable**; malformed tokens still show invalid. No successful

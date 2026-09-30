@@ -10,11 +10,12 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { safeServerError } from "@/lib/server-env";
 import { verificationStore } from "@/lib/verification-store";
 import { apiError, apiHeaders } from "@/lib/observability";
+import { requestUser } from "@/lib/request-auth";
 export const runtime = "nodejs";
 export async function GET(request: Request) {
   let authenticated = false;
   try {
-    authenticated = authorized(request);
+    authenticated = authorized(request) || Boolean(await requestUser(verificationStore(), request));
   } catch {
     /* Unconfigured service remains signed out. */
   }

@@ -8,6 +8,12 @@ import { verificationEnvironment } from "./server-env.ts";
 /** Only this adapter handles persistence. Production uses an external Redis REST service. */
 export interface VerificationStore {
   ping(): Promise<void>;
+  authGet(key: string): Promise<string | null>;
+  authSet(key: string, value: string): Promise<void>;
+  authSetIfAbsent(key: string, value: string): Promise<boolean>;
+  authDelete(key: string): Promise<void>;
+  authMembers(key: string): Promise<string[]>;
+  authAddMember(key: string, member: string): Promise<void>;
   next(prefix: string): Promise<number>;
   get(token: string): Promise<VerificationRecord | null>;
   list(projectId: string): Promise<VerificationRecord[]>;
@@ -44,6 +50,12 @@ export class RedisVerificationStore implements VerificationStore {
     const result = await this.command<string>("PING");
     if (result !== "PONG") throw new Error("Verification store unavailable");
   }
+  async authGet(key: string) { return this.command<string | null>("GET", key); }
+  async authSet(key: string, value: string) { await this.command<string>("SET", key, value); }
+  async authSetIfAbsent(key: string, value: string) { return (await this.command<string | null>("SET", key, value, "NX")) === "OK"; }
+  async authDelete(key: string) { await this.command<number>("DEL", key); }
+  async authMembers(key: string) { return this.command<string[]>("SMEMBERS", key); }
+  async authAddMember(key: string, member: string) { await this.command<number>("SADD", key, member); }
   next(prefix: string) {
     return this.command<number>("INCR", `bs:verify:sequence:${prefix}`);
   }
@@ -128,6 +140,8 @@ type LocalData = {
   records: VerificationRecord[];
   audit: AuditEvent[];
   rate: Record<string, { count: number; expiresAt: number }>;
+  auth?: Record<string, string>;
+  authSets?: Record<string, string[]>;
 };
 let pending: Promise<unknown> = Promise.resolve();
 /** Explicit local development/test adapter, never selected on Vercel or in production. */
@@ -152,9 +166,11 @@ export class FileVerificationStore implements VerificationStore {
           data.rate ??= {};
           data.sequences ??= {};
           data.records ??= [];
+          data.auth ??= {};
+          data.authSets ??= {};
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-          data = { sequences: {}, records: [], audit: [], rate: {} };
+          data = { sequences: {}, records: [], audit: [], rate: {}, auth: {}, authSets: {} };
         }
         const result = fn(data);
         if (write) {
@@ -170,6 +186,12 @@ export class FileVerificationStore implements VerificationStore {
   async ping() {
     await this.transaction(() => undefined);
   }
+  authGet(key: string) { return this.transaction((data) => data.auth?.[key] ?? null); }
+  authSet(key: string, value: string) { return this.transaction((data) => { (data.auth ??= {})[key] = value; }, true); }
+  authSetIfAbsent(key: string, value: string) { return this.transaction((data) => { const auth = (data.auth ??= {}); if (auth[key] !== undefined) return false; auth[key] = value; return true; }, true); }
+  authDelete(key: string) { return this.transaction((data) => { delete (data.auth ?? {})[key]; }, true); }
+  authMembers(key: string) { return this.transaction((data) => [...(data.authSets?.[key] ?? [])]); }
+  authAddMember(key: string, member: string) { return this.transaction((data) => { const set = ((data.authSets ??= {})[key] ??= []); if (!set.includes(member)) set.push(member); }, true); }
   next(prefix: string) {
     return this.transaction(
       (data) => (data.sequences[prefix] = (data.sequences[prefix] ?? 0) + 1),

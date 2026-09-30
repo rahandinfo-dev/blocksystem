@@ -7,12 +7,19 @@ export type AuditAction =
   | "admin.signed-in"
   | "backup.created"
   | "backup.restored"
-  | "project.deleted";
+  | "project.deleted"
+  | "auth.login.success"
+  | "auth.login.failure"
+  | "auth.logout"
+  | "auth.user.created"
+  | "auth.user.updated"
+  | "auth.user.disabled"
+  | "auth.permission.denied";
 export type AuditEvent = {
   id: string;
   action: AuditAction;
   timestamp: string;
-  entityType: "project" | "document" | "verification" | "backup" | "admin";
+  entityType: "project" | "document" | "verification" | "backup" | "admin" | "user" | "auth";
   entityReference?: string;
   result: "success" | "failure";
   context?: Record<string, string | number | boolean>;

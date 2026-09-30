@@ -5,6 +5,7 @@ export const ratePolicy = {
   admin: [30, 60],
   revoke: [10, 60],
   document: [30, 60],
+  login: [8, 300],
 } as const;
 export async function enforceRateLimit(
   store: VerificationStore,
