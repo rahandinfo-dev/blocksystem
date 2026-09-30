@@ -42,6 +42,7 @@ import { ProjectDocuments } from "./project-documents";
 import { BackupRecovery } from "./backup-recovery";
 import { AuditHistory } from "./audit-history";
 import { ProjectCollaboration } from "./project-collaboration";
+import { EngineeringTakeoff } from "./engineering-takeoff";
 
 const errorMessageKeys: Record<CalculationErrorCode, string> = {
   "invalid-room": "errors.invalidRoom",
@@ -692,6 +693,7 @@ export function Calculator() {
         <CalculationBreakdown result={result} />
         <ProjectDocuments data={data} projectId={activeProjectId} onSettings={(documentSettings)=>setData(current=>({...current,documentSettings}))} />
         <ProjectCollaboration projectId={activeProjectId} />
+        <EngineeringTakeoff data={data} />
         <AuditHistory />
         <BackupRecovery />
         <ScenarioComparison data={data} onChange={setData} />
