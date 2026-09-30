@@ -35,7 +35,7 @@ import { SavedProjects } from "./saved-projects";
 import { WallPreview } from "./wall-preview";
 import { WallsEditor } from "./walls-editor";
 import { useI18n } from "@/lib/i18n";
-import { addWorkspaceNotification, getActiveProjectId, persistProject, setActiveProjectId } from "@/lib/project-storage";
+import { addWorkspaceNotification, getActiveProjectId, getWorkspacePreferences, persistProject, setActiveProjectId } from "@/lib/project-storage";
 import { WorkspaceConsole } from "./workspace-console";
 import { ScenarioComparison } from "./scenario-comparison";
 import { ProjectDocuments } from "./project-documents";
@@ -176,11 +176,18 @@ export function Calculator() {
   }, [t]);
   useEffect(() => {
     if (!isDirty) return;
-    const enabled = typeof window !== "undefined" && JSON.parse(window.localStorage.getItem("blocksystem:preferences:v1") ?? "{}").autosave !== false;
+    const enabled = getWorkspacePreferences().autosave;
     if (!enabled) return;
     const timer = window.setTimeout(() => saveWorkspace("autosave"), 900);
     return () => window.clearTimeout(timer);
   }, [data, isDirty, saveWorkspace]);
+  useEffect(() => {
+    const flushWhenBackgrounded = () => {
+      if (document.visibilityState === "hidden" && isDirty) saveWorkspace("autosave");
+    };
+    document.addEventListener("visibilitychange", flushWhenBackgrounded);
+    return () => document.removeEventListener("visibilitychange", flushWhenBackgrounded);
+  }, [isDirty, saveWorkspace]);
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => { if (!isDirty) return; event.preventDefault(); event.returnValue = ""; };
     window.addEventListener("beforeunload", warn);

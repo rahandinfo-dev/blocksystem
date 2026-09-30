@@ -63,3 +63,11 @@ Editable projects are stored in the current browser’s `localStorage`. They are
 The NRT font is committed at `src/app/fonts/NRT-Reg.ttf` and bundled for both web and multilingual PDF rendering. Use `.env.example` and the [verification deployment guide](docs/verification-deployment.md) to configure server-side persistence, administrator access and the trusted verification origin. Do not commit `.env` or `.env.local` files.
 
 Deploy with the standard Vercel Next.js preset after running the quality checks above. The calculator remains usable without verification configuration; issuance fails closed and public verification reports unavailable until its production database and server-only environment variables are configured.
+
+## PWA and offline behaviour
+
+BlockSystem registers its service worker only in production. Supported browsers can offer installation after the user has dismissed neither the browser nor the in-app install option. Static application assets and the offline fallback are cached; project data remains in browser storage as before.
+
+Verification pages and every `/api/` operation are intentionally excluded from the service-worker cache. A verification result is therefore always live, and an unavailable connection is never presented as a valid document. Creating documents, revoking verification, administration and new server-issued records require a successful network request.
+
+When a deployment provides a newer worker, the app presents an **Update now** control. Updating is user-initiated so the app does not reload while someone may have unsaved edits. After changing any Vercel environment variable from `.env.example` (especially `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `VERIFICATION_ADMIN_SECRET`, or `VERIFICATION_PUBLIC_ORIGIN`), redeploy the production site. `VERIFICATION_PUBLIC_ORIGIN` must be the HTTPS production origin without a path.

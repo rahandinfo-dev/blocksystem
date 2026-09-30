@@ -28,6 +28,7 @@ const preferencesKey = "blocksystem:preferences:v1";
 const recentSearchesKey = "blocksystem:recent-searches:v1";
 const activeProjectKey = "blocksystem:active-project:v1";
 const storageEventName = "yek-block-projects-changed";
+const readCache = new Map<string, { raw: string | null; value: unknown }>();
 
 export type ProjectSaveResult =
   | {
@@ -49,9 +50,11 @@ function clone<T>(value: T): T {
 function read<T>(key: string, fallback: T): T {
   if (!canUseStorage()) return fallback;
   try {
-    const value: unknown = JSON.parse(
-      window.localStorage.getItem(key) ?? "null",
-    );
+    const raw = window.localStorage.getItem(key);
+    const cached = readCache.get(key);
+    if (cached?.raw === raw) return cached.value === null ? fallback : (cached.value as T);
+    const value: unknown = JSON.parse(raw ?? "null");
+    readCache.set(key, { raw, value });
     return value === null ? fallback : (value as T);
   } catch {
     return fallback;
@@ -60,7 +63,9 @@ function read<T>(key: string, fallback: T): T {
 function write(key: string, value: unknown): boolean {
   if (!canUseStorage()) return false;
   try {
-    window.localStorage.setItem(key, JSON.stringify(value));
+    const raw = JSON.stringify(value);
+    window.localStorage.setItem(key, raw);
+    readCache.set(key, { raw, value });
     window.dispatchEvent(new Event(storageEventName));
     return true;
   } catch {
@@ -412,6 +417,7 @@ export function restoreWorkspaceBackup(raw: unknown): boolean {
     addGlobalActivity("backup-restored");
     return true;
   } catch {
+    readCache.clear();
     for (const [key, value] of [
       [storageKey, previous.projects],
       [favoritesKey, previous.favorites],
@@ -560,10 +566,11 @@ export function recordProjectOpen(project: SavedProject) {
 }
 export function subscribeToSavedProjects(callback: () => void): () => void {
   if (!canUseStorage()) return () => undefined;
-  window.addEventListener(storageEventName, callback);
-  window.addEventListener("storage", callback);
+  const invalidate = () => { readCache.clear(); callback(); };
+  window.addEventListener(storageEventName, invalidate);
+  window.addEventListener("storage", invalidate);
   return () => {
-    window.removeEventListener(storageEventName, callback);
-    window.removeEventListener("storage", callback);
+    window.removeEventListener(storageEventName, invalidate);
+    window.removeEventListener("storage", invalidate);
   };
 }

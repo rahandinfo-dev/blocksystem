@@ -910,6 +910,7 @@ export function RoomThreeScene({
       </div> : null}</div>
       <Canvas
         shadows
+        frameloop={autoRotate ? "always" : "demand"}
         dpr={[1, 1.75]}
         camera={cameraOptions}
         resize={{ scroll: false, debounce: 0 }}

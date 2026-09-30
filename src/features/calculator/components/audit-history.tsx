@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import type { AuditEvent } from "@/lib/audit";
+import { fetchWithSafeRetry } from "@/lib/client-network";
 
 export function AuditHistory() {
   const { t, direction, formatDate } = useI18n();
@@ -11,8 +12,9 @@ export function AuditHistory() {
   const load = async () => {
     setState("loading");
     try {
-      const response = await fetch("/api/verification/audit?limit=100", {
+      const response = await fetchWithSafeRetry("/api/verification/audit?limit=100", {
         cache: "no-store",
+        retries: 1,
       });
       if (!response.ok) throw new Error();
       const value = (await response.json()) as { events?: AuditEvent[] };

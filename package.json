@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test src/features/calculator/lib/calculations.test.ts src/features/calculator/lib/camera-fit.test.ts src/lib/verification.test.ts src/lib/phase8.test.ts",
+    "test": "node --experimental-strip-types --test src/features/calculator/lib/calculations.test.ts src/features/calculator/lib/camera-fit.test.ts src/lib/verification.test.ts src/lib/phase8.test.ts src/lib/phase9.test.ts",
     "test:documents": "node scripts/verify-documents.mjs"
   },
   "dependencies": {
