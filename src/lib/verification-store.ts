@@ -11,9 +11,11 @@ export interface VerificationStore {
   authGet(key: string): Promise<string | null>;
   authSet(key: string, value: string): Promise<void>;
   authSetIfAbsent(key: string, value: string): Promise<boolean>;
+  authCompareAndSet(key: string, expected: string, value: string): Promise<boolean>;
   authDelete(key: string): Promise<void>;
   authMembers(key: string): Promise<string[]>;
   authAddMember(key: string, member: string): Promise<void>;
+  authRemoveMember(key: string, member: string): Promise<void>;
   next(prefix: string): Promise<number>;
   get(token: string): Promise<VerificationRecord | null>;
   list(projectId: string): Promise<VerificationRecord[]>;
@@ -53,9 +55,11 @@ export class RedisVerificationStore implements VerificationStore {
   async authGet(key: string) { return this.command<string | null>("GET", key); }
   async authSet(key: string, value: string) { await this.command<string>("SET", key, value); }
   async authSetIfAbsent(key: string, value: string) { return (await this.command<string | null>("SET", key, value, "NX")) === "OK"; }
+  async authCompareAndSet(key: string, expected: string, value: string) { return (await this.command<number>("EVAL", "if redis.call('GET',KEYS[1])==ARGV[1] then redis.call('SET',KEYS[1],ARGV[2]); return 1 end return 0", 1, key, expected, value)) === 1; }
   async authDelete(key: string) { await this.command<number>("DEL", key); }
   async authMembers(key: string) { return this.command<string[]>("SMEMBERS", key); }
   async authAddMember(key: string, member: string) { await this.command<number>("SADD", key, member); }
+  async authRemoveMember(key: string, member: string) { await this.command<number>("SREM", key, member); }
   next(prefix: string) {
     return this.command<number>("INCR", `bs:verify:sequence:${prefix}`);
   }
@@ -189,9 +193,11 @@ export class FileVerificationStore implements VerificationStore {
   authGet(key: string) { return this.transaction((data) => data.auth?.[key] ?? null); }
   authSet(key: string, value: string) { return this.transaction((data) => { (data.auth ??= {})[key] = value; }, true); }
   authSetIfAbsent(key: string, value: string) { return this.transaction((data) => { const auth = (data.auth ??= {}); if (auth[key] !== undefined) return false; auth[key] = value; return true; }, true); }
+  authCompareAndSet(key: string, expected: string, value: string) { return this.transaction((data) => { const auth = (data.auth ??= {}); if (auth[key] !== expected) return false; auth[key] = value; return true; }, true); }
   authDelete(key: string) { return this.transaction((data) => { delete (data.auth ?? {})[key]; }, true); }
   authMembers(key: string) { return this.transaction((data) => [...(data.authSets?.[key] ?? [])]); }
   authAddMember(key: string, member: string) { return this.transaction((data) => { const set = ((data.authSets ??= {})[key] ??= []); if (!set.includes(member)) set.push(member); }, true); }
+  authRemoveMember(key: string, member: string) { return this.transaction((data) => { const set = (data.authSets ??= {})[key]; if (set) data.authSets![key] = set.filter((item) => item !== member); }, true); }
   next(prefix: string) {
     return this.transaction(
       (data) => (data.sequences[prefix] = (data.sequences[prefix] ?? 0) + 1),

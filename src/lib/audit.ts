@@ -14,7 +14,14 @@ export type AuditAction =
   | "auth.user.created"
   | "auth.user.updated"
   | "auth.user.disabled"
-  | "auth.permission.denied";
+  | "auth.permission.denied"
+  | "project.member.added"
+  | "project.member.removed"
+  | "project.member.role.changed"
+  | "project.owner.transferred"
+  | "project.comment.created"
+  | "project.assignment.changed"
+  | "project.conflict.detected";
 export type AuditEvent = {
   id: string;
   action: AuditAction;

@@ -86,6 +86,10 @@ export async function grantProjectAccess(store: VerificationStore, projectId: st
   if (!/^[A-Za-z0-9_-]{1,100}$/.test(projectId) || !validId(userId)) throw new Error("Invalid project access");
   await store.authAddMember(projectMembersKey(projectId), userId);
 }
+export async function revokeProjectAccess(store: VerificationStore, projectId: string, userId: string) {
+  if (!/^[A-Za-z0-9_-]{1,100}$/.test(projectId) || !validId(userId)) throw new Error("Invalid project access");
+  await store.authRemoveMember(projectMembersKey(projectId), userId);
+}
 export async function canAccessProject(store: VerificationStore, user: SafeUser, projectId: string) {
   if (!/^[A-Za-z0-9_-]{1,100}$/.test(projectId) || !hasPermission(user.role, "projects.read")) return false;
   if (user.role === "SUPER_ADMIN" || user.role === "ADMIN") return true;

@@ -1,4 +1,5 @@
 import { authenticatedUser, canAccessProject, grantProjectAccess, hasPermission } from "./auth.ts";
+import { projectAccess, snapshot } from "./collaboration.ts";
 import type { Permission, SafeUser } from "./auth-types.ts";
 import { authorized as legacyAuthorized } from "./verification-auth.ts";
 import type { VerificationStore } from "./verification-store.ts";
@@ -21,7 +22,13 @@ export async function permits(store: VerificationStore, request: Request, permis
 export async function permitsProject(store: VerificationStore, request: Request, projectId: string, permission: Permission) {
   try { if (legacyAuthorized(request)) return true; } catch { /* handled by application sessions */ }
   const user = await requestUser(store, request);
-  return Boolean(user && hasPermission(user.role, permission) && await canAccessProject(store, user, projectId));
+  if (!user || !hasPermission(user.role, permission)) return false;
+  const collaboration = await snapshot(store, projectId);
+  if (collaboration) {
+    const action = permission === "documents.read" || permission === "projects.read" ? "read" : permission === "documents.revoke" || permission === "projects.delete" ? "manage" : "edit";
+    return Boolean(await projectAccess(store, user, projectId, action));
+  }
+  return canAccessProject(store, user, projectId);
 }
 
 export async function assignProjectToRequestUser(store: VerificationStore, request: Request, projectId: string) {

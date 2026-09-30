@@ -95,3 +95,17 @@ record and its revocation state; it is not an engineering approval, a digital PD
 signature, or a guarantee that an arbitrary PDF carrying the same QR was unmodified.
 Production operation and Vercel deployment must be checked separately after setting
 credentials; local tests do not prove a live production deployment.
+
+## Phase 12 collaboration
+
+Collaboration records (project owner/member roles, comments, assignments, activity
+and in-app notifications) use the same server-only persistent Redis adapter as
+verification and authentication. They are never stored as authoritative browser data
+and all collaboration API responses are `no-store`. Existing local projects remain
+private until an authenticated user explicitly enables collaboration for that project;
+this one-time action establishes the initial owner without guessing ownership of
+legacy projects. Removed members immediately lose server-side project/document access.
+
+There is deliberately no email provider in this deployment. Adding an existing user
+to a project creates an in-app notification; invitation-email delivery and true
+realtime presence require separately configured providers and are not simulated.
