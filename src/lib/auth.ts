@@ -29,10 +29,11 @@ export function normalizeEmail(value: string) { return value.trim().toLowerCase(
 const reservedUsernames = new Set(["admin", "administrator", "root", "system", "support", "blocksystem"]);
 export function normalizeUsername(value: string) { return value.trim().toLowerCase(); }
 export function validUsername(value: string) { return /^[a-z0-9](?:[a-z0-9._-]{1,29})$/.test(value) && !reservedUsernames.has(value); }
+export function validPassword(value: string) { const classes = [/[a-z]/.test(value), /[A-Z]/.test(value), /\d/.test(value), /[^A-Za-z0-9]/.test(value)].filter(Boolean).length; return value.length >= 12 && value.length <= 1024 && (value.length >= 20 || classes >= 3); }
 export function hasPermission(role: Role, permission: Permission) { return permissions[role].includes(permission); }
 export function hasRole(role: Role, ...allowed: Role[]) { return allowed.includes(role); }
 export async function hashPassword(password: string) {
-  if (password.length < 12 || password.length > 1024) throw new Error("Invalid password");
+  if (!validPassword(password)) throw new Error("Invalid password");
   const salt = randomBytes(16).toString("hex");
   const derived = await scrypt(password, salt, 64, { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 });
   return `scrypt$16384$8$1$${salt}$${derived.toString("hex")}`;

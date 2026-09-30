@@ -64,7 +64,7 @@ export function AppHeader() {
         >
           <Menu size={18} /> {t("common.menu")}
         </button>
-        {user ? <div className="hidden items-center gap-2 sm:flex"><Link href="/profile" className="inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 text-sm font-bold"><UserRound size={17}/>{user.displayName}</Link><button type="button" className="min-h-10 rounded-lg border px-3 text-sm font-bold" onClick={() => void signOut()} aria-label={t("auth.signOut")}><LogOut size={17}/></button></div> : <Link href="/login" className="hidden min-h-10 items-center gap-2 rounded-lg border px-3 text-sm font-bold sm:inline-flex"><LogIn size={17}/>{t("auth.signIn")}</Link>}
+        {user ? <div className="hidden items-center gap-2 sm:flex"><Link href="/profile" className="inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 text-sm font-bold"><UserRound size={17}/>{user.displayName}</Link><Link href="/activity" className="inline-flex min-h-10 items-center rounded-lg border px-3 text-sm font-bold">{t("activity.title")}</Link><button type="button" className="min-h-10 rounded-lg border px-3 text-sm font-bold" onClick={() => void signOut()} aria-label={t("auth.signOut")}><LogOut size={17}/></button></div> : <Link href="/login" className="hidden min-h-10 items-center gap-2 rounded-lg border px-3 text-sm font-bold sm:inline-flex"><LogIn size={17}/>{t("auth.signIn")}</Link>}
       </div>
       {open ? (
         <div
@@ -164,7 +164,7 @@ export function AppHeader() {
                 {languages.map((code) => <option key={code} value={code}>{languageDetails[code].label}</option>)}
               </select>
             </label>
-            <div className="mt-4 grid gap-2"><Link href={user ? "/profile" : "/login"} className="inline-flex min-h-11 items-center gap-2 rounded-lg border px-3 font-semibold"><UserRound size={18}/>{user ? t("auth.profile") : t("auth.signIn")}</Link>{user?.role === "SUPER_ADMIN" || user?.role === "ADMIN" ? <Link href="/admin/users" className="inline-flex min-h-11 items-center gap-2 rounded-lg border px-3 font-semibold"><Users size={18}/>{t("auth.manageUsers")}</Link> : null}{user ? <button type="button" onClick={() => void signOut()} className="inline-flex min-h-11 items-center gap-2 rounded-lg border px-3 font-semibold"><LogOut size={18}/>{t("auth.signOut")}</button> : null}</div>
+            <div className="mt-4 grid gap-2"><Link href={user ? "/profile" : "/login"} className="inline-flex min-h-11 items-center gap-2 rounded-lg border px-3 font-semibold"><UserRound size={18}/>{user ? t("auth.profile") : t("auth.signIn")}</Link>{user ? <Link href="/activity" className="inline-flex min-h-11 items-center gap-2 rounded-lg border px-3 font-semibold"><UserRound size={18}/>{t("activity.title")}</Link> : null}{user?.role === "SUPER_ADMIN" || user?.role === "ADMIN" ? <Link href="/admin/users" className="inline-flex min-h-11 items-center gap-2 rounded-lg border px-3 font-semibold"><Users size={18}/>{t("auth.manageUsers")}</Link> : null}{user ? <button type="button" onClick={() => void signOut()} className="inline-flex min-h-11 items-center gap-2 rounded-lg border px-3 font-semibold"><LogOut size={18}/>{t("auth.signOut")}</button> : null}</div>
           </aside>
         </div>
       ) : null}

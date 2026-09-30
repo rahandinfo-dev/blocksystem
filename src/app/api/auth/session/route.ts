@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     await store.appendAudit(auditEvent({ action: valid ? "auth.login.success" : "auth.login.failure", entityType: "auth", entityReference: user?.id, result: valid ? "success" : "failure", context: { request: requestFingerprint(request) } }));
     if (!valid || !user) return apiError("UNAUTHORIZED", 401, request);
     if (user.emailVerificationRequired && !user.emailVerifiedAt) return apiError("FORBIDDEN", 403, request);
-    return Response.json({ user: { id: user.id, email: user.email, displayName: user.displayName, role: user.role, status: user.status, createdAt: user.createdAt, updatedAt: user.updatedAt } }, { headers: apiHeaders(request, { "Set-Cookie": await createSession(store, user) }) });
+    return Response.json({ user: { id: user.id, email: user.email, username: user.username, displayName: user.displayName, role: user.role, status: user.status, emailVerifiedAt: user.emailVerifiedAt, emailVerificationRequired: user.emailVerificationRequired, createdAt: user.createdAt, updatedAt: user.updatedAt } }, { headers: apiHeaders(request, { "Set-Cookie": await createSession(store, user) }) });
   } catch { return apiError("DEPENDENCY_UNAVAILABLE", 503, request); }
 }
 export async function DELETE(request: Request) {

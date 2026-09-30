@@ -4,11 +4,13 @@ import { useI18n } from "@/lib/i18n";
 import { Calculator } from "@/features/calculator/components/calculator";
 import { ProjectDashboard } from "@/features/calculator/components/project-dashboard";
 import { AppHeader } from "./app-header";
+import { ServerProjectSync } from "@/components/auth/server-project-sync";
 
 export function HomeContent() {
   const { t } = useI18n();
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
+      <ServerProjectSync />
       <AppHeader />
       <main id="main-content" className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
         <div className="mb-8 max-w-3xl sm:mb-10">

@@ -8,6 +8,8 @@ export type AuditAction =
   | "backup.created"
   | "backup.restored"
   | "project.deleted"
+  | "project.created"
+  | "project.updated"
   | "auth.login.success"
   | "auth.login.failure"
   | "auth.logout"

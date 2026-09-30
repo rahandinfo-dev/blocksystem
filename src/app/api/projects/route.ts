@@ -1,0 +1,9 @@
+import { auditEvent } from "@/lib/audit";
+import { authenticatedUser, hasPermission } from "@/lib/auth";
+import { apiError, apiHeaders } from "@/lib/observability";
+import { saveServerProject, listServerProjects } from "@/lib/server-projects";
+import { limitedJson, sameOrigin } from "@/lib/verification-auth";
+import { verificationStore } from "@/lib/verification-store";
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+export async function GET(request: Request) { try { const store = verificationStore(); const user = await authenticatedUser(store, request); if (!user || !hasPermission(user.role, "projects.read")) return apiError("UNAUTHORIZED", 401, request); return Response.json({ projects: await listServerProjects(store, user) }, { headers: apiHeaders(request) }); } catch { return apiError("DEPENDENCY_UNAVAILABLE", 503, request); } }
+export async function POST(request: Request) { if (!sameOrigin(request)) return apiError("FORBIDDEN", 403, request); try { const store = verificationStore(); const user = await authenticatedUser(store, request); if (!user || !hasPermission(user.role, "projects.create")) return apiError("FORBIDDEN", 403, request); const body = await limitedJson(request) as { project?: unknown }; const result = await saveServerProject(store, user, body.project); await store.appendAudit(auditEvent({ action: result.created ? "project.created" : "project.updated", entityType: "project", entityReference: result.project.id, result: "success", context: { actorId: user.id } })); return Response.json(result, { status: result.created ? 201 : 200, headers: apiHeaders(request) }); } catch (error) { return error instanceof Error && error.message === "Forbidden" ? apiError("FORBIDDEN", 403, request) : apiError("VALIDATION_ERROR", 400, request); } }
