@@ -1,5 +1,5 @@
 import type { CalculatorProjectData, ProjectVersion, SavedProject, SaveKind, WorkspaceActivity, WorkspaceNotification, WorkspacePreferences } from "@/features/calculator/types";
-import { calculationEngineVersion, migrateSavedProject, projectSchemaVersion } from "@/lib/project-schema";
+import { calculationEngineVersion, migrateSavedProject, projectSchemaVersion } from "./project-schema.ts";
 
 const storageKey = "yek-block-projects-v1";
 const recoveryKey = "yek-block-recovery-v1";
@@ -19,8 +19,9 @@ function clone<T>(value: T): T { return JSON.parse(JSON.stringify(value)) as T; 
 function read<T>(key: string, fallback: T): T { if (!canUseStorage()) return fallback; try { const value: unknown = JSON.parse(window.localStorage.getItem(key) ?? "null"); return value === null ? fallback : value as T; } catch { return fallback; } }
 function write(key: string, value: unknown): boolean { if (!canUseStorage()) return false; try { window.localStorage.setItem(key, JSON.stringify(value)); window.dispatchEvent(new Event(storageEventName)); return true; } catch { return false; } }
 function projectName(data: CalculatorProjectData) { return data.metadata.projectName.trim() || "Untitled project"; }
-function makeId(prefix: string) { return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`; }
-function withIdentity(data: CalculatorProjectData, existing?: SavedProject): CalculatorProjectData { if (data.identity?.publicReference && data.identity.verificationToken) return data; const sequence = getSavedProjects().length + 1; const year = new Date().getFullYear(); const reference = `BS-${year}-${String(sequence).padStart(6, "0")}`; const token = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID().replace(/-/g, "") : makeId("verify"); return { ...data, identity: existing?.data.identity ?? { publicReference: reference, verificationToken: token } }; }
+function makeId(prefix: string) { return `${prefix}-${crypto.randomUUID()}`; }
+// Browser identities are legacy metadata only. Public identities are allocated by the server.
+function withIdentity(data: CalculatorProjectData, existing?: SavedProject): CalculatorProjectData { return { ...data, identity: existing?.data.identity ?? data.identity }; }
 
 export function getSavedProjects(): SavedProject[] { return read<unknown[]>(storageKey, []).map(migrateSavedProject).filter((project): project is SavedProject => project !== null); }
 function writeProjects(projects: SavedProject[]) { return write(storageKey, projects); }
@@ -77,6 +78,7 @@ export function saveRecovery(data: CalculatorProjectData): boolean { return writ
 export function getRecovery(): CalculatorProjectData | null { const parsed = read<{ data?: unknown } | null>(recoveryKey, null); return parsed?.data ? migrateSavedProject({ version: 5, id: "recovery", data: parsed.data })?.data ?? null : null; }
 
 export function duplicateProject(project: SavedProject): SavedProject | null {
+  // A copy must be registered independently and never inherit a public verification identity.
   const copy = clone(project.data); let sequence = 0; const nextId = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${++sequence}`; const copyOpenings = <T extends { id: string; wallId?: string }>(openings: T[], wallIdMap = new Map<string, string>()) => openings.map((opening) => ({ ...opening, id: nextId("opening"), wallId: opening.wallId ? wallIdMap.get(opening.wallId) ?? opening.wallId : opening.wallId }));
   copy.rooms = copy.rooms.map((room) => { const roomWallIds = new Map(room.walls.map((wall) => [wall.id, nextId("room-wall")])); return { ...room, id: nextId("room"), doors: copyOpenings(room.doors, roomWallIds), windows: copyOpenings(room.windows, roomWallIds), walls: room.walls.map((wall) => ({ ...wall, id: roomWallIds.get(wall.id) ?? nextId("room-wall"), doors: copyOpenings(wall.doors, roomWallIds), windows: copyOpenings(wall.windows, roomWallIds), otherOpenings: copyOpenings(wall.otherOpenings, roomWallIds), structuralDeductions: copyOpenings(wall.structuralDeductions, roomWallIds) })) }; });
   copy.walls = copy.walls.map((wall) => { const id = nextId("wall"); const wallIdMap = new Map([[wall.id, id]]); return { ...wall, id, doors: copyOpenings(wall.doors, wallIdMap), windows: copyOpenings(wall.windows, wallIdMap) }; });
@@ -89,6 +91,7 @@ export function duplicateProject(project: SavedProject): SavedProject | null {
       activeScenarioId: copy.scenarioComparison.activeScenarioId ? scenarioIds.get(copy.scenarioComparison.activeScenarioId) : undefined,
     };
   }
+  delete copy.identity;
   copy.metadata.projectName = `${project.name} (copy)`; return saveProject(copy);
 }
 export function renameSavedProject(id: string, name: string): SavedProject[] | null { const projects = getSavedProjects().map((project) => project.id === id ? { ...project, name, savedAt: new Date().toISOString(), data: { ...project.data, metadata: { ...project.data.metadata, projectName: name } } } : project); return writeProjects(projects) ? projects : null; }

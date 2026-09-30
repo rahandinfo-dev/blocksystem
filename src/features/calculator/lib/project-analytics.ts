@@ -24,6 +24,9 @@ export function calculateSavedProject(data: CalculatorProjectData) {
   const waste = data.settings.wastePreset === "custom" ? Number(data.settings.customWastePercentage) : Number(data.settings.wastePreset);
   return calculateProject({ mode: data.mode, units: projectNumericUnits(data), block: blockFor(data), wastePercentage: waste,
     unitPrice: data.settings.unitPrice === "" ? undefined : Number(data.settings.unitPrice), currency: data.settings.currency,
+    mortarConsumptionM3PerM2: data.settings.mortarEnabled ? Number(data.settings.mortarConsumptionM3PerM2) : undefined,
+    mortarJointThicknessCm: data.settings.mortarJointEnabled ? Number(data.settings.mortarJointThicknessCm) : 0,
+    exchangeRateIqdPerUsd: data.settings.exchangeRateIqdPerUsd ? Number(data.settings.exchangeRateIqdPerUsd) : undefined,
     costExtras: { transportCost: Number(data.settings.transportCost || 0), laborCost: Number(data.settings.laborCost || 0), mortarCost: Number(data.settings.mortarCost || 0), otherCost: Number(data.settings.otherCost || 0), otherCostLabel: data.settings.otherCostLabel || undefined },
   });
 }

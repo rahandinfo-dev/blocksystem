@@ -1,4 +1,25 @@
-"use client";
-import { useEffect, useState } from "react";
-import { getSavedProjects } from "@/lib/project-storage";
-export default function Verify({ params }: { params: Promise<{ token: string }> }) { const [state,setState]=useState<"loading"|"valid"|"invalid"|"revoked">("loading"); const [reference,setReference]=useState(""); useEffect(()=>{void params.then(({token})=>{const project=getSavedProjects().find(item=>item.data.identity?.verificationToken===token); setReference(project?.data.identity?.publicReference??""); setState(!project?"invalid":project.data.identity?.revoked?"revoked":"valid");});},[params]); return <main className="mx-auto grid min-h-screen max-w-xl place-items-center p-6"><section className="w-full rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm"><p className="text-sm font-semibold text-[#0F2053]">BlockSystem verification</p><h1 className="mt-3 text-2xl font-bold">{state==="loading"?"Verifying…":state==="valid"?"Verified record":state==="revoked"?"Verification revoked":"Verification unavailable"}</h1>{reference?<p className="mt-3 font-mono text-sm">{reference}</p>:null}<p className="mt-4 text-sm text-slate-600">This verifies that BlockSystem recognises this record. It does not certify engineering safety or payment.</p></section></main>; }
+import type { Metadata } from "next";
+import { lookup } from "@/lib/verification-service";
+import { validToken } from "@/lib/verification";
+import { verificationStore } from "@/lib/verification-store";
+import { VerificationView } from "./verification-view";
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+export const metadata: Metadata = { robots: { index: false, follow: false } };
+export default async function Verify({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}) {
+  const { token } = await params;
+  if (!validToken(token))
+    return <VerificationView record={null} unavailable={false} />;
+  let record = null;
+  let unavailable = false;
+  try {
+    record = await lookup(verificationStore(), token);
+  } catch {
+    unavailable = true;
+  }
+  return <VerificationView record={record} unavailable={unavailable} />;
+}

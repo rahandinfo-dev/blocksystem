@@ -1,25 +1,201 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import PDFDocument from "pdfkit";
-import type { ProjectDocumentData } from "./project-document";
+import QRCode from "qrcode";
+import type { ProjectDocumentData } from "./project-document.ts";
+import { documentSections } from "./document-presentation.ts";
+import { documentText } from "../../../lib/document-messages.ts";
+import type { Language } from "../../../lib/i18n";
+import { pdfTextRuns } from "./pdf-bidi.ts";
 
-const money = (value: number, currency: "IQD" | "USD") => currency === "USD" ? `$${value.toLocaleString("en-US", { minimumFractionDigits: 2 })}` : `${value.toLocaleString("en-US")} IQD`;
-
-export async function renderProjectDocumentPdf(data: ProjectDocumentData): Promise<Buffer> {
-  const font = await readFile(join(process.cwd(), "src", "app", "fonts", "NRT-Reg.ttf"));
-  const doc = new PDFDocument({ size: "A4", margin: 42 }); doc.registerFont("NRT", font);
-  const chunks: Buffer[] = []; const output = new Promise<Buffer>((resolve, reject) => { doc.on("data", (chunk: Buffer) => chunks.push(chunk)); doc.on("end", () => resolve(Buffer.concat(chunks))); doc.on("error", reject); });
-  const width = doc.page.width - 84; let y = 42;
-  const ensure = (height: number) => { if (y + height > doc.page.height - 55) { doc.addPage({ size: "A4", margin: 42 }); y = 42; } };
-  const line = (label: string, value: string, bold = false) => { ensure(20); doc.font(bold ? "Helvetica-Bold" : "Helvetica").fontSize(9).fillColor("#15203C").text(label, 42, y, { width: width * .45 }); doc.font("Helvetica").text(value, 42 + width * .47, y, { width: width * .53, align: "right" }); y += 20; };
-  const section = (title: string) => { ensure(31); doc.roundedRect(42, y, width, 22, 4).fill("#EDE6CC"); doc.font("Helvetica-Bold").fontSize(11).fillColor("#0F2053").text(title, 51, y + 6); y += 30; };
-  const title = data.kind === "quotation" ? "QUOTATION" : data.kind === "detailed" ? "DETAILED CALCULATION REPORT" : data.kind === "scenarios" ? "SCENARIO COMPARISON REPORT" : "PROJECT ESTIMATE";
-  doc.rect(0, 0, doc.page.width, 86).fill("#0F2053"); doc.font("Helvetica-Bold").fontSize(20).fillColor("#fff").text(title, 42, 29); doc.font("Helvetica").fontSize(9).fillColor("#EDE6CC").text(`BlockSystem · ${data.reference}`, 42, 58); y = 108;
-  section("PROJECT INFORMATION"); line("Project", data.project.name, true); if (data.project.reference) line("Project reference", data.project.reference); if (data.project.client) line("Client", data.project.client); if (data.project.location) line("Location", data.project.location); line("Issue date", data.issuedAt); if (data.validUntil) line("Valid until", data.validUntil);
-  section("MATERIAL & CALCULATION SUMMARY"); line("Block", `${data.block.name} · ${data.block.specification}`); line("Gross wall area", `${data.result.grossWallArea.toFixed(2)} m²`); line("Openings", `${(data.result.totalOpeningArea + data.result.totalStructuralDeductionArea).toFixed(2)} m²`); line("Net wall area", `${data.result.netWallArea.toFixed(2)} m²`, true); line("Base quantity", `${data.result.requiredBlocks} pcs`); line("Waste", `${data.result.wasteBlocks} pcs (${data.result.wastePercentage}%)`); line("Final required quantity", `${data.result.recommendedBlocks} pcs`, true);
-  if (data.result.cost) { const cost = data.result.cost; section("COST BREAKDOWN"); line("Unit price", money(cost.unitPrice, cost.currency)); line("Material", money(cost.recommendedTotalCost, cost.currency)); if (cost.laborCost) line("Labour", money(cost.laborCost, cost.currency)); if (cost.transportCost) line("Transport", money(cost.transportCost, cost.currency)); if (cost.mortarCost + cost.otherCost) line(cost.otherCostLabel || "Additional costs", money(cost.mortarCost + cost.otherCost, cost.currency)); ensure(36); doc.roundedRect(42, y, width, 29, 4).fill("#0F2053"); doc.font("Helvetica-Bold").fontSize(12).fillColor("#fff").text(`GRAND TOTAL  ${money(cost.grandTotal, cost.currency)}`, 52, y + 9, { width: width - 20, align: "right" }); y += 39; }
-  if (data.kind === "detailed") { section("ROOM / WALL BREAKDOWN"); data.rooms.forEach((room) => line(room.name, `Gross ${room.gross.toFixed(2)} m² · Openings ${room.openings.toFixed(2)} m² · Net ${room.net.toFixed(2)} m²`)); }
-  if (data.kind === "scenarios" && data.scenarios.length) { section("SCENARIO COMPARISON"); data.scenarios.forEach((scenario) => line(`${scenario.baseline ? "Baseline · " : ""}${scenario.name}`, `${scenario.block} · ${scenario.base} + ${scenario.waste} = ${scenario.final} pcs${scenario.total !== undefined ? ` · ${money(scenario.total, scenario.currency!)}` : ""}`)); }
-  if (data.notes) { section("NOTES"); doc.font("Helvetica").fontSize(9).fillColor("#15203C").text(data.notes, 42, y, { width }); y += Math.max(28, doc.heightOfString(data.notes, { width })); } if (data.terms) { section("TERMS & CONDITIONS"); doc.font("Helvetica").fontSize(9).fillColor("#15203C").text(data.terms, 42, y, { width }); } if (data.preparedBy) { ensure(42); y += 18; doc.font("Helvetica").fontSize(9).fillColor("#15203C").text(`Prepared by: ${data.preparedBy}`, 42, y); doc.moveTo(42, y + 25).lineTo(210, y + 25).stroke(); }
-  doc.end(); return output;
+/** The existing PDF pipeline, with measured text, NRT shaping, pagination and issued-record QR. */
+export async function renderProjectDocumentPdf(
+  data: ProjectDocumentData,
+  language: Language = "en-GB",
+  verification?: {
+    url: string;
+    reference: string;
+    fingerprint: string;
+    revoked: boolean;
+  },
+): Promise<Buffer> {
+  const font = await readFile(
+    join(process.cwd(), "src", "app", "fonts", "NRT-Reg.ttf"),
+  );
+  const doc = new PDFDocument({
+    size: "A4",
+    margin: 0,
+    bufferPages: true,
+    info: { Title: data.reference, Author: data.issuer || "BlockSystem" },
+  });
+  doc.registerFont("NRT", font);
+  doc.font("NRT");
+  const chunks: Buffer[] = [];
+  const output = new Promise<Buffer>((resolve, reject) => {
+    doc.on("data", (chunk) => chunks.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.on("error", reject);
+  });
+  const t = (key: string) => documentText(language, `documents.${key}`);
+  const rtl = language !== "en-GB";
+  const margin = 42;
+  const width = doc.page.width - margin * 2;
+  const bottom = doc.page.height - 48;
+  let y = 42;
+  const wrap = (text: string, w: number, size = 10) => {
+    doc.fontSize(size);
+    const lines: string[] = [];
+    for (const paragraph of text.split("\n")) {
+      let line = "";
+      for (const word of paragraph.split(/\s+/)) {
+        if (doc.widthOfString(`${line} ${word}`.trim()) <= w) {
+          line = `${line} ${word}`.trim();
+          continue;
+        }
+        if (line) lines.push(line);
+        line = "";
+        for (const ch of word) {
+          if (doc.widthOfString(line + ch) > w) {
+            lines.push(line);
+            line = "";
+          }
+          line += ch;
+        }
+      }
+      lines.push(line);
+    }
+    return lines;
+  };
+  const draw = (text: string, x: number, top: number, w: number, size = 10) => {
+    const runs = pdfTextRuns(
+      text,
+      rtl && /[\u0600-\u06ff]/.test(text) ? "rtl" : "ltr",
+    ).map((value) => {
+      const font = /^[²³]$/.test(value) ? "Helvetica" : "NRT";
+      doc.font(font).fontSize(size);
+      return { value, font, width: doc.widthOfString(value) };
+    });
+    let cursor =
+      x + (rtl ? w - runs.reduce((sum, run) => sum + run.width, 0) : 0);
+    for (const run of runs) {
+      doc
+        .font(run.font)
+        .fontSize(size)
+        .fillColor("#0F2053")
+        .text(run.value, cursor, top, { lineBreak: false });
+      cursor += run.width;
+    }
+    doc.font("NRT");
+  };
+  const header = () => {
+    for (const line of wrap(data.issuer || "BlockSystem", width, 14)) {
+      draw(line, margin, y, width, 14);
+      y += 22;
+    }
+    y += 4;
+    draw(t(data.kind), margin, y, width, 13);
+    y += 22;
+    draw(data.reference, margin, y, width, 9);
+    y += 24;
+    doc
+      .strokeColor("#0F2053")
+      .moveTo(margin, y)
+      .lineTo(margin + width, y)
+      .stroke();
+    y += 16;
+  };
+  const ensure = (height: number) => {
+    if (y + height > bottom) {
+      doc.addPage({ size: "A4", margin: 0 });
+      y = 42;
+      header();
+    }
+  };
+  header();
+  if (data.contact) {
+    for (const line of wrap(data.contact, width)) {
+      ensure(16);
+      draw(line, margin, y, width);
+      y += 16;
+    }
+    y += 10;
+  }
+  for (const section of documentSections(data, language)) {
+    const titles = wrap(section.title, width - 16, 11);
+    ensure(titles.length * 17 + 48);
+    doc.rect(margin, y, width, titles.length * 17 + 8).fill("#EDE6CC");
+    for (const line of titles) {
+      draw(line, margin + 8, y + 4, width - 16, 11);
+      y += 17;
+    }
+    y += 14;
+    for (const [label, value] of section.rows) {
+      if (!label) {
+        for (const line of wrap(value, width)) {
+          ensure(17);
+          draw(line, margin, y, width);
+          y += 17;
+        }
+        y += 10;
+        continue;
+      }
+      const lw = width * 0.4;
+      const vw = width - lw - 16;
+      const left = wrap(label, lw, 9);
+      const right = wrap(value, vw, 10);
+      const count = Math.max(left.length, right.length);
+      for (let i = 0; i < count; i++) {
+        ensure(18);
+        if (left[i])
+          draw(left[i], rtl ? margin + width - lw : margin, y, lw, 9);
+        if (right[i])
+          draw(right[i], rtl ? margin : margin + lw + 16, y, vw, 10);
+        y += 18;
+      }
+      doc
+        .strokeColor("#D5D7DD")
+        .moveTo(margin, y)
+        .lineTo(margin + width, y)
+        .stroke();
+      y += 8;
+    }
+    y += 10;
+  }
+  if (verification) {
+    ensure(138);
+    const qr = await QRCode.toBuffer(verification.url, {
+      errorCorrectionLevel: "M",
+      margin: 4,
+      width: 480,
+    });
+    doc.image(qr, rtl ? margin + width - 104 : margin, y, {
+      width: 104,
+      height: 104,
+    });
+    const x = rtl ? margin : margin + 120;
+    const w = width - 120;
+    for (const line of wrap(t("scan"), w, 11)) {
+      draw(line, x, y, w, 11);
+      y += 18;
+    }
+    draw(verification.reference, x, y + 6, w, 10);
+    draw(verification.revoked ? t("revoked") : t("valid"), x, y + 26, w, 10);
+    draw(verification.fingerprint.slice(0, 24), x, y + 46, w, 8);
+    y += 100;
+  }
+  const pages = doc.bufferedPageRange();
+  for (let i = 0; i < pages.count; i++) {
+    doc.switchToPage(i);
+    doc
+      .fontSize(8)
+      .fillColor("#566179")
+      .text(
+        `${data.reference} · ${i + 1} / ${pages.count}`,
+        margin,
+        doc.page.height - 30,
+        { width, align: "center", lineBreak: false },
+      );
+  }
+  doc.end();
+  return output;
 }

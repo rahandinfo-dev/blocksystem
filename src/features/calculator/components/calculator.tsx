@@ -39,7 +39,6 @@ import { addWorkspaceNotification, getActiveProjectId, persistProject, setActive
 import { WorkspaceConsole } from "./workspace-console";
 import { ScenarioComparison } from "./scenario-comparison";
 import { ProjectDocuments } from "./project-documents";
-import { ProjectQr } from "./project-qr";
 
 const errorMessageKeys: Record<CalculationErrorCode, string> = {
   "invalid-room": "errors.invalidRoom",
@@ -681,8 +680,7 @@ export function Calculator() {
       </div>
       <div className="print:hidden space-y-6">
         <CalculationBreakdown result={result} />
-        <ProjectDocuments data={data} />
-        <ProjectQr data={data} />
+        <ProjectDocuments data={data} projectId={activeProjectId} onSettings={(documentSettings)=>setData(current=>({...current,documentSettings}))} />
         <ScenarioComparison data={data} onChange={setData} />
         <SavedProjects
           data={data}
