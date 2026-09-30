@@ -175,6 +175,7 @@ export interface CalculatorProjectData {
   settings: CalculatorSettings;
   /** Optional so legacy project records remain valid without migration loss. */
   scenarioComparison?: ScenarioComparisonData;
+  identity?: { publicReference: string; verificationToken: string; revoked?: boolean };
 }
 
 export interface NumericUnit {

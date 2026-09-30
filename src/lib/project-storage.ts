@@ -20,6 +20,7 @@ function read<T>(key: string, fallback: T): T { if (!canUseStorage()) return fal
 function write(key: string, value: unknown): boolean { if (!canUseStorage()) return false; try { window.localStorage.setItem(key, JSON.stringify(value)); window.dispatchEvent(new Event(storageEventName)); return true; } catch { return false; } }
 function projectName(data: CalculatorProjectData) { return data.metadata.projectName.trim() || "Untitled project"; }
 function makeId(prefix: string) { return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`; }
+function withIdentity(data: CalculatorProjectData, existing?: SavedProject): CalculatorProjectData { if (data.identity?.publicReference && data.identity.verificationToken) return data; const sequence = getSavedProjects().length + 1; const year = new Date().getFullYear(); const reference = `BS-${year}-${String(sequence).padStart(6, "0")}`; const token = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID().replace(/-/g, "") : makeId("verify"); return { ...data, identity: existing?.data.identity ?? { publicReference: reference, verificationToken: token } }; }
 
 export function getSavedProjects(): SavedProject[] { return read<unknown[]>(storageKey, []).map(migrateSavedProject).filter((project): project is SavedProject => project !== null); }
 function writeProjects(projects: SavedProject[]) { return write(storageKey, projects); }
@@ -57,6 +58,7 @@ export function setActiveProjectId(projectId: string | null) { return write(acti
 export function persistProject(data: CalculatorProjectData, kind: Extract<SaveKind, "manual" | "autosave" | "restore">, activeProjectId: string | null): ProjectSaveResult {
   const projects = getSavedProjects();
   const existing = activeProjectId ? projects.find((project) => project.id === activeProjectId) : undefined;
+  data = withIdentity(data, existing);
   const now = new Date().toISOString();
   const changed = !existing || JSON.stringify(existing.data) !== JSON.stringify(data);
   const project: SavedProject = existing ? { ...existing, name: projectName(data), savedAt: changed ? now : existing.savedAt, data: clone(data), calculationEngineVersion } : { version: projectSchemaVersion, id: makeId("project"), name: projectName(data), createdAt: now, savedAt: now, data: clone(data), calculationEngineVersion };
