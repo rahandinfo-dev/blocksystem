@@ -1,7 +1,8 @@
 import { createHmac, timingSafeEqual, createHash } from "node:crypto";
+import { verificationEnvironment } from "./server-env.ts";
 const name = "bs-verification-admin";
 function secret() {
-  const value = process.env.VERIFICATION_ADMIN_SECRET;
+  const value = verificationEnvironment().adminSecret;
   if (!value || value.length < 32)
     throw new Error("Verification administrator unavailable");
   return value;
@@ -42,10 +43,15 @@ export function authorized(request: Request) {
   );
 }
 export function sameOrigin(request: Request) {
-  return request.headers.get("origin") === new URL(request.url).origin;
+  const origin = request.headers.get("origin");
+  return typeof origin === "string" && origin === new URL(request.url).origin;
 }
 export async function limitedJson(request: Request) {
-  if (Number(request.headers.get("content-length")) > 1000000)
+  const headerLength = request.headers.get("content-length");
+  if (
+    headerLength !== null &&
+    (!/^\d+$/.test(headerLength) || Number(headerLength) > 1000000)
+  )
     throw new Error("Invalid input");
   const reader = request.body?.getReader();
   if (!reader) throw new Error("Invalid input");

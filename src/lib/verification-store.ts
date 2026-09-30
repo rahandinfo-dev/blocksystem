@@ -2,6 +2,8 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import type { VerificationRecord } from "./verification.ts";
+import type { AuditEvent } from "./audit.ts";
+import { verificationEnvironment } from "./server-env.ts";
 
 /** Only this adapter handles persistence. Production uses an external Redis REST service. */
 export interface VerificationStore {
@@ -10,6 +12,9 @@ export interface VerificationStore {
   list(projectId: string): Promise<VerificationRecord[]>;
   create(record: VerificationRecord): Promise<boolean>;
   revoke(token: string): Promise<VerificationRecord | null>;
+  rateLimit(key: string, limit: number, seconds: number): Promise<boolean>;
+  appendAudit(event: AuditEvent): Promise<void>;
+  listAudit(limit: number): Promise<AuditEvent[]>;
 }
 export class RedisVerificationStore implements VerificationStore {
   private readonly url: string;
@@ -78,10 +83,46 @@ export class RedisVerificationStore implements VerificationStore {
     );
     return raw ? (JSON.parse(raw) as VerificationRecord) : null;
   }
+  async rateLimit(key: string, limit: number, seconds: number) {
+    const count = await this.command<number>(
+      "EVAL",
+      "local n=redis.call('INCR',KEYS[1]); if n==1 then redis.call('EXPIRE',KEYS[1],ARGV[1]) end return n",
+      1,
+      `bs:rate:${key}`,
+      seconds,
+    );
+    return count <= limit;
+  }
+  async appendAudit(event: AuditEvent) {
+    await this.command<number>(
+      "LPUSH",
+      "bs:audit:events",
+      JSON.stringify(event),
+    );
+    await this.command<number>("LTRIM", "bs:audit:events", 0, 9999);
+  }
+  async listAudit(limit: number) {
+    const raw = await this.command<string[]>(
+      "LRANGE",
+      "bs:audit:events",
+      0,
+      Math.max(0, Math.min(limit, 200) - 1),
+    );
+    return raw
+      .map((value) => JSON.parse(value) as AuditEvent)
+      .filter(
+        (value) =>
+          value &&
+          typeof value.id === "string" &&
+          typeof value.action === "string",
+      );
+  }
 }
 type LocalData = {
   sequences: Record<string, number>;
   records: VerificationRecord[];
+  audit: AuditEvent[];
+  rate: Record<string, { count: number; expiresAt: number }>;
 };
 let pending: Promise<unknown> = Promise.resolve();
 /** Explicit local development/test adapter, never selected on Vercel or in production. */
@@ -102,9 +143,13 @@ export class FileVerificationStore implements VerificationStore {
         let data: LocalData;
         try {
           data = JSON.parse(await readFile(file, "utf8")) as LocalData;
+          data.audit ??= [];
+          data.rate ??= {};
+          data.sequences ??= {};
+          data.records ??= [];
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-          data = { sequences: {}, records: [] };
+          data = { sequences: {}, records: [], audit: [], rate: {} };
         }
         const result = fn(data);
         if (write) {
@@ -160,10 +205,36 @@ export class FileVerificationStore implements VerificationStore {
       return record ?? null;
     }, true);
   }
+  rateLimit(key: string, limit: number, seconds: number) {
+    return this.transaction((data) => {
+      const now = Date.now();
+      for (const [candidate, value] of Object.entries(data.rate))
+        if (value.expiresAt <= now) delete data.rate[candidate];
+      const current = data.rate[key];
+      const entry = !current
+        ? { count: 0, expiresAt: now + seconds * 1000 }
+        : current;
+      entry.count += 1;
+      data.rate[key] = entry;
+      return entry.count <= limit;
+    }, true);
+  }
+  appendAudit(event: AuditEvent) {
+    return this.transaction((data) => {
+      data.audit.unshift(event);
+      data.audit = data.audit.slice(0, 10000);
+    }, true);
+  }
+  listAudit(limit: number) {
+    return this.transaction((data) =>
+      data.audit.slice(0, Math.max(0, Math.min(limit, 200))),
+    );
+  }
 }
 export function verificationStore(): VerificationStore {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const secret = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const config = verificationEnvironment();
+  const url = config.redisUrl;
+  const secret = config.redisToken;
   if (url && secret && new URL(url).protocol === "https:")
     return new RedisVerificationStore(url, secret);
   if (

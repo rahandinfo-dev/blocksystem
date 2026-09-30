@@ -6,6 +6,9 @@ import {
   verificationOrigin,
   verificationUrl,
 } from "@/lib/verification";
+import { auditEvent, requestFingerprint } from "@/lib/audit";
+import { enforceRateLimit } from "@/lib/rate-limit";
+import { safeServerError } from "@/lib/server-env";
 export const runtime = "nodejs";
 export async function POST(request: Request) {
   try {
@@ -21,7 +24,13 @@ export async function POST(request: Request) {
       !["ku", "ar", "en-GB"].includes(String(body.language))
     )
       return Response.json({ error: "invalid" }, { status: 400 });
-    const record = await verificationStore().get(body.token);
+    const store = verificationStore();
+    if (!(await enforceRateLimit(store, request, "document")))
+      return Response.json(
+        { error: "rate_limited" },
+        { status: 429, headers: { "Retry-After": "60" } },
+      );
+    const record = await store.get(body.token);
     if (!record?.snapshot)
       return Response.json({ error: "invalid" }, { status: 404 });
     const pdf = await renderProjectDocumentPdf(
@@ -34,6 +43,18 @@ export async function POST(request: Request) {
         revoked: record.status === "revoked",
       },
     );
+    await store.appendAudit(
+      auditEvent({
+        action: "document.exported",
+        entityType: "document",
+        entityReference: record.documentReference,
+        result: "success",
+        context: {
+          language: body.language,
+          request: requestFingerprint(request),
+        },
+      }),
+    );
     return new Response(new Uint8Array(pdf), {
       headers: {
         "Content-Type": "application/pdf",
@@ -41,7 +62,8 @@ export async function POST(request: Request) {
         "Cache-Control": "no-store",
       },
     });
-  } catch {
+  } catch (error) {
+    safeServerError(error);
     return Response.json({ error: "unavailable" }, { status: 503 });
   }
 }

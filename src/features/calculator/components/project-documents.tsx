@@ -98,8 +98,14 @@ export function ProjectDocuments({
     setMessage("");
     try {
       await work();
-    } catch {
-      setMessage(t("documents.error"));
+    } catch (error) {
+      setMessage(
+        !navigator.onLine
+          ? t("security.offline")
+          : error instanceof Error && error.message === "429"
+            ? t("security.rateLimited")
+            : t("documents.error"),
+      );
     } finally {
       setBusy(false);
     }
@@ -112,7 +118,7 @@ export function ProjectDocuments({
         body: JSON.stringify({ password }),
       });
       setPassword("");
-      if (!response.ok) throw new Error();
+      if (!response.ok) throw new Error(String(response.status));
       await refresh();
     });
   const issue = (projectOnly = false) =>
@@ -122,7 +128,7 @@ export function ProjectDocuments({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectId, data, options, projectOnly }),
       });
-      if (!response.ok) throw new Error();
+      if (!response.ok) throw new Error(String(response.status));
       const record = (await response.json()) as RecordView;
       setSelected(record.verificationToken);
       await refresh();
@@ -135,7 +141,7 @@ export function ProjectDocuments({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: record.verificationToken }),
       });
-      if (!response.ok) throw new Error();
+      if (!response.ok) throw new Error(String(response.status));
       await refresh();
     });
   };
@@ -146,7 +152,7 @@ export function ProjectDocuments({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: record.verificationToken, language }),
       });
-      if (!response.ok) throw new Error();
+      if (!response.ok) throw new Error(String(response.status));
       const blob = await response.blob();
       if ((await blob.slice(0, 5).text()) !== "%PDF-") throw new Error();
       const url = URL.createObjectURL(blob);

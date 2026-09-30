@@ -282,7 +282,7 @@ export type CalculationResponse =
   | { isValid: false; error: CalculationErrorCode };
 
 export interface SavedProject {
-  version: 1 | 2 | 3 | 4 | 5;
+  version: 1 | 2 | 3 | 4 | 5 | 6;
   id: string;
   name: string;
   createdAt?: string;
@@ -315,7 +315,7 @@ export interface WorkspaceNotification {
 export interface WorkspaceActivity {
   id: string;
   createdAt: string;
-  type: "saved" | "restored" | "opened" | "created";
+  type: "saved" | "restored" | "opened" | "created" | "deleted" | "backup-created" | "backup-restored";
   projectId?: string;
   projectName: string;
   detail?: string;

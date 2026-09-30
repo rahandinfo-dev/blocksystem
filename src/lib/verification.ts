@@ -1,5 +1,6 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type { ProjectDocumentData } from "../features/calculator/lib/project-document.ts";
+import { verificationEnvironment } from "./server-env.ts";
 
 export interface VerificationRecord {
   documentId: string;
@@ -71,23 +72,9 @@ export function publicRecord(record: VerificationRecord): PublicVerification {
   };
 }
 export function verificationOrigin() {
-  const configured = process.env.VERIFICATION_PUBLIC_ORIGIN;
-  if (!configured) throw new Error("Verification origin unavailable");
-  const url = new URL(configured);
-  const local =
-    !process.env.VERCEL &&
-    process.env.NODE_ENV !== "production" &&
-    ["localhost", "127.0.0.1"].includes(url.hostname);
-  if (
-    (url.protocol !== "https:" && !(local && url.protocol === "http:")) ||
-    url.username ||
-    url.password ||
-    url.pathname !== "/" ||
-    url.search ||
-    url.hash
-  )
-    throw new Error("Invalid verification origin");
-  return url.origin;
+  const origin = verificationEnvironment().publicOrigin;
+  if (!origin) throw new Error("Verification origin unavailable");
+  return origin;
 }
 export function verificationUrl(origin: string, value: string) {
   if (!validToken(value)) throw new Error("Invalid token");

@@ -23,6 +23,21 @@ Use a durable database with backups and no automatic expiry/eviction of verifica
 records. Do not share its credentials with the browser or prefix them `NEXT_PUBLIC_`.
 Keep production and preview databases separate. Do not change the public origin
 after issuing documents without preserving redirects from the original domain.
+After changing a Vercel environment variable, redeploy production. The public origin
+must be the exact production HTTPS origin with no trailing path, query or fragment.
+
+## Phase 8 operational controls
+
+The server validates the required production variables and fails closed if they are
+missing, malformed, or accidentally published as `NEXT_PUBLIC_*`. Sensitive public,
+administrative, revocation and PDF operations are rate limited through Redis.
+Administrative audit records are append-oriented and contain only safe references
+and bounded metadata—never passwords, tokens, project snapshots or secrets.
+
+Standard production response headers protect content types, referrers, framing and
+unneeded browser permissions. A static CSP is intentionally not set: Next runtime
+scripts, the existing 3D renderer and QR/PDF workflow need a nonce-based policy;
+an unsafe guessed CSP would be worse than these compatible headers.
 
 The document centre's administrator sign-in uses the admin secret over HTTPS to
 obtain a signed, one-hour, HttpOnly, Secure, SameSite=Strict cookie. Only administrators

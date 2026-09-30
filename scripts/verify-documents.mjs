@@ -404,6 +404,7 @@ try {
       assert.equal(
         await publicPage
           .locator("[data-verification-state]")
+          .last()
           .getAttribute("data-verification-state"),
         "valid",
       );
@@ -454,6 +455,7 @@ try {
   assert.equal(
     await publicPage
       .locator("[data-verification-state]")
+      .last()
       .getAttribute("data-verification-state"),
     "revoked",
   );
@@ -462,6 +464,7 @@ try {
     assert.equal(
       await publicPage
         .locator("[data-verification-state]")
+        .last()
         .getAttribute("data-verification-state"),
       "invalid",
     );
@@ -475,6 +478,7 @@ try {
     assert.equal(
       await publicPage
         .locator("[data-verification-state]")
+        .last()
         .getAttribute("data-verification-state"),
       "unavailable",
     );
