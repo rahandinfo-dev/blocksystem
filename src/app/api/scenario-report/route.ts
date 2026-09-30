@@ -1,0 +1,4 @@
+import { renderScenarioReportPdf } from "@/features/calculator/lib/scenario-report-pdf";
+import type { ScenarioReportData } from "@/features/calculator/lib/scenario-report";
+export const runtime = "nodejs";
+export async function POST(request: Request) { try { const body = await request.json() as { report?: ScenarioReportData }; if (!body.report || !Array.isArray(body.report.scenarios) || !Array.isArray(body.report.rows)) return Response.json({ error: "Invalid report" }, { status: 400 }); const pdf = await renderScenarioReportPdf(body.report); return new Response(new Uint8Array(pdf), { headers: { "Content-Type": "application/pdf", "Content-Disposition": "attachment; filename=BlockSystem-scenario-comparison.pdf" } }); } catch { return Response.json({ error: "Report generation failed" }, { status: 500 }); } }

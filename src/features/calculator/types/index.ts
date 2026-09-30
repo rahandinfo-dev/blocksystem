@@ -141,12 +141,40 @@ export interface CalculatorSettings {
   otherCost: string;
 }
 
+/** A saved material/cost overlay. Geometry always remains on the project. */
+export interface ScenarioConfiguration {
+  id: string;
+  name: string;
+  blockMode: "library" | "custom";
+  selectedBlockId: Exclude<BlockId, "custom">;
+  customBlock: Omit<BlockDefinition, "id" | "name">;
+  wastePercentage: string;
+  unitPrice: string;
+  currency: CurrencyCode;
+  transportCost: string;
+  laborCost: string;
+  mortarCost: string;
+  otherCostLabel: string;
+  otherCost: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ScenarioComparisonData {
+  scenarios: ScenarioConfiguration[];
+  baselineScenarioId?: string;
+  activeScenarioId?: string;
+}
+
 export interface CalculatorProjectData {
   mode: CalculationMode;
   metadata: ProjectMetadata;
   rooms: RoomInput[];
   walls: WallInput[];
   settings: CalculatorSettings;
+  /** Optional so legacy project records remain valid without migration loss. */
+  scenarioComparison?: ScenarioComparisonData;
 }
 
 export interface NumericUnit {
@@ -252,7 +280,7 @@ export type CalculationResponse =
   | { isValid: false; error: CalculationErrorCode };
 
 export interface SavedProject {
-  version: 1 | 2 | 3 | 4;
+  version: 1 | 2 | 3 | 4 | 5;
   id: string;
   name: string;
   createdAt?: string;
