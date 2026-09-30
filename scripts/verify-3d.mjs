@@ -189,7 +189,7 @@ async function changeLanguage(page, language) {
 }
 
 async function formState(page) {
-  return page.evaluate(() => ({ values: Array.from(document.querySelectorAll("main input, main select")).map((element)=>[element.id,element.value]), language: localStorage.getItem("blocksystem:language"), bodyStyle: document.body.getAttribute("style"), htmlOverflow: document.documentElement.style.overflow }));
+  return page.evaluate(() => ({ values: Array.from(document.querySelectorAll("main input, main select")).map((element)=>[element.id,element.value]), language: localStorage.getItem("blocksystem:language"), bodyStyle: document.body.getAttribute("style") ?? "", htmlOverflow: document.documentElement.style.overflow }));
 }
 
 try {
@@ -217,7 +217,7 @@ try {
   await page.locator('input[id*="-door-"][id$="-height"]').fill("2.1");
   await page.getByRole("button",{name:"Add window",exact:true}).click();
   await page.locator('input[id*="-window-"][id$="-width"]').fill("1.2");
-  await page.locator('input[id*="-window-"][id$="-height"]').fill("1.1");
+  await page.locator('input[id*="-window-"][id$="-height"]:not([id$="-sill-height"])').fill("1.1");
   await page.locator("#room-preview button").scrollIntoViewIfNeeded();
   await page.waitForTimeout(100);
   const before=await formState(page);

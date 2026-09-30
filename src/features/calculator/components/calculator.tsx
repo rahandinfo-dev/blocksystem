@@ -37,6 +37,7 @@ import { WallsEditor } from "./walls-editor";
 import { useI18n } from "@/lib/i18n";
 import { addWorkspaceNotification, getActiveProjectId, persistProject, setActiveProjectId } from "@/lib/project-storage";
 import { WorkspaceConsole } from "./workspace-console";
+import { ScenarioComparison } from "./scenario-comparison";
 
 const errorMessageKeys: Record<CalculationErrorCode, string> = {
   "invalid-room": "errors.invalidRoom",
@@ -668,6 +669,7 @@ export function Calculator() {
       </div>
       <div className="print:hidden space-y-6">
         <CalculationBreakdown result={result} />
+        <ScenarioComparison data={data} onChange={setData} />
         <SavedProjects
           data={data}
           activeProjectId={activeProjectId}

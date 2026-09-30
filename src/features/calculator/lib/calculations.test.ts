@@ -17,6 +17,8 @@ import { buildReceiptData, getReceiptScopes } from "./receipt-data.ts";
 import { calculationEngineVersion, migrateSavedProject, projectSchemaVersion } from "../../../lib/project-schema.ts";
 import { formatMoney, formatMoneyInput } from "../../../lib/currency.ts";
 import { convertArea, convertLength, convertVolume } from "../../../lib/units.ts";
+import { calculateScenario, createScenarioFromProject } from "./scenario-engine.ts";
+import { createDefaultProject } from "./project-state.ts";
 
 const standardBlock = { id: "20cm" as const, name: "بلۆکی ٢٠ سم", thicknessCm: 20, lengthCm: 40, heightCm: 20 };
 
@@ -339,4 +341,26 @@ test("keeps wall formulas deterministic across openings, waste, and imperial dis
   assert.equal(convertLength(1, "m", "ft"), 3.28083989501312);
   assert.equal(convertLength(12, "in", "ft"), 1);
   assert.equal(convertArea(1, "m²", "ft²"), 10.7639104167097);
+});
+
+test("scenario engine independently compares block, waste, cost, canonical geometry and currency safely", () => {
+  const data = createDefaultProject();
+  data.mode = "walls";
+  data.walls = [{ id: "wall", name: "Wall", length: "6", height: "2.8", lengthUnit: "m", heightUnit: "m", doors: [], windows: [] }];
+  const first = createScenarioFromProject(data, "a", "A");
+  first.wastePercentage = "5"; first.unitPrice = "1000"; first.selectedBlockId = "20cm";
+  const second = { ...first, id: "b", name: "B", selectedBlockId: "10cm" as const, wastePercentage: "10", unitPrice: "1500" };
+  const a = validResult(calculateScenario(data, first)); const b = validResult(calculateScenario(data, second));
+  assert.equal(a.netWallArea, b.netWallArea);
+  assert.equal(a.requiredBlocks, b.requiredBlocks); // thickness alone never changes the visible face calculation
+  assert.ok(b.wasteBlocks > a.wasteBlocks);
+  assert.ok((b.cost?.grandTotal ?? 0) > (a.cost?.grandTotal ?? 0));
+  const duplicate = { ...first, id: "copy", wastePercentage: "10" };
+  assert.notEqual(validResult(calculateScenario(data, duplicate)).wasteBlocks, a.wasteBlocks);
+  data.walls[0].length = "12";
+  assert.ok(validResult(calculateScenario(data, first)).recommendedBlocks > a.recommendedBlocks);
+  data.walls[0].length = String(convertLength(1200, "cm", "m"));
+  assert.equal(validResult(calculateScenario(data, first)).recommendedBlocks, validResult(calculateScenario({ ...data, walls: [{ ...data.walls[0], length: "12" }] }, first)).recommendedBlocks);
+  const usd = { ...first, id: "usd", currency: "USD" as const };
+  assert.notEqual(validResult(calculateScenario(data, usd)).cost?.currency, validResult(calculateScenario(data, first)).cost?.currency);
 });

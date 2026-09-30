@@ -72,12 +72,21 @@ export function saveProject(data: CalculatorProjectData): SavedProject | null { 
 export function restoreProjectVersion(projectId: string, versionId: string): ProjectSaveResult { const current = getSavedProjects().find((project) => project.id === projectId); const version = getProjectVersions(projectId).find((item) => item.id === versionId); if (!current || !version || !addVersion(projectId, current.data, "restore-safety")) return { ok: false }; const restored = persistProject(version.data, "restore", projectId); if (restored.ok) addActivity("restored", restored.project, `revision ${version.revision}`); return restored; }
 
 export function saveRecovery(data: CalculatorProjectData): boolean { return write(recoveryKey, { data, savedAt: new Date().toISOString() }); }
-export function getRecovery(): CalculatorProjectData | null { const parsed = read<{ data?: unknown } | null>(recoveryKey, null); return parsed?.data ? migrateSavedProject({ version: 4, id: "recovery", data: parsed.data })?.data ?? null : null; }
+export function getRecovery(): CalculatorProjectData | null { const parsed = read<{ data?: unknown } | null>(recoveryKey, null); return parsed?.data ? migrateSavedProject({ version: 5, id: "recovery", data: parsed.data })?.data ?? null : null; }
 
 export function duplicateProject(project: SavedProject): SavedProject | null {
   const copy = clone(project.data); let sequence = 0; const nextId = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${++sequence}`; const copyOpenings = <T extends { id: string; wallId?: string }>(openings: T[], wallIdMap = new Map<string, string>()) => openings.map((opening) => ({ ...opening, id: nextId("opening"), wallId: opening.wallId ? wallIdMap.get(opening.wallId) ?? opening.wallId : opening.wallId }));
   copy.rooms = copy.rooms.map((room) => { const roomWallIds = new Map(room.walls.map((wall) => [wall.id, nextId("room-wall")])); return { ...room, id: nextId("room"), doors: copyOpenings(room.doors, roomWallIds), windows: copyOpenings(room.windows, roomWallIds), walls: room.walls.map((wall) => ({ ...wall, id: roomWallIds.get(wall.id) ?? nextId("room-wall"), doors: copyOpenings(wall.doors, roomWallIds), windows: copyOpenings(wall.windows, roomWallIds), otherOpenings: copyOpenings(wall.otherOpenings, roomWallIds), structuralDeductions: copyOpenings(wall.structuralDeductions, roomWallIds) })) }; });
   copy.walls = copy.walls.map((wall) => { const id = nextId("wall"); const wallIdMap = new Map([[wall.id, id]]); return { ...wall, id, doors: copyOpenings(wall.doors, wallIdMap), windows: copyOpenings(wall.windows, wallIdMap) }; });
+  if (copy.scenarioComparison) {
+    const scenarioIds = new Map(copy.scenarioComparison.scenarios.map((scenario) => [scenario.id, nextId("scenario")]));
+    copy.scenarioComparison = {
+      ...copy.scenarioComparison,
+      scenarios: copy.scenarioComparison.scenarios.map((scenario) => ({ ...scenario, id: scenarioIds.get(scenario.id) ?? nextId("scenario") })),
+      baselineScenarioId: copy.scenarioComparison.baselineScenarioId ? scenarioIds.get(copy.scenarioComparison.baselineScenarioId) : undefined,
+      activeScenarioId: copy.scenarioComparison.activeScenarioId ? scenarioIds.get(copy.scenarioComparison.activeScenarioId) : undefined,
+    };
+  }
   copy.metadata.projectName = `${project.name} (copy)`; return saveProject(copy);
 }
 export function renameSavedProject(id: string, name: string): SavedProject[] | null { const projects = getSavedProjects().map((project) => project.id === id ? { ...project, name, savedAt: new Date().toISOString(), data: { ...project.data, metadata: { ...project.data.metadata, projectName: name } } } : project); return writeProjects(projects) ? projects : null; }
