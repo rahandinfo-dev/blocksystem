@@ -13,6 +13,7 @@ import { previewMessages } from "@/lib/preview-messages";
 import { workspaceMessages } from "@/lib/workspace-messages";
 import { phase3Messages } from "@/lib/phase3-messages";
 import { scenarioMessages } from "@/lib/scenario-messages";
+import { analyticsMessages } from "@/lib/analytics-messages";
 
 export const languages = ["ku", "ar", "en-GB"] as const;
 export type Language = (typeof languages)[number];
@@ -238,9 +239,9 @@ const ar: Messages = {
 };
 
 const dictionaries: Record<Language, Messages> = {
-  ku: { ...ku, ...previewMessages.ku, ...workspaceMessages.ku, ...phase3Messages.ku, ...scenarioMessages.ku },
-  ar: { ...ar, ...previewMessages.ar, ...workspaceMessages.ar, ...phase3Messages.ar, ...scenarioMessages.ar },
-  "en-GB": { ...en, ...previewMessages["en-GB"], ...workspaceMessages["en-GB"], ...phase3Messages["en-GB"], ...scenarioMessages["en-GB"] },
+  ku: { ...ku, ...previewMessages.ku, ...workspaceMessages.ku, ...phase3Messages.ku, ...scenarioMessages.ku, ...analyticsMessages.ku },
+  ar: { ...ar, ...previewMessages.ar, ...workspaceMessages.ar, ...phase3Messages.ar, ...scenarioMessages.ar, ...analyticsMessages.ar },
+  "en-GB": { ...en, ...previewMessages["en-GB"], ...workspaceMessages["en-GB"], ...phase3Messages["en-GB"], ...scenarioMessages["en-GB"], ...analyticsMessages["en-GB"] },
 };
 
 function interpolate(message: string, values?: MessageValues) {

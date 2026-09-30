@@ -193,6 +193,16 @@ export function Calculator() {
     setRawData(createDefaultProject()); setPast([]); setFuture([]); setHasCalculated(false); setIsDirty(false); setSaveState("saved");
     activeProjectRef.current = null; setActiveProject(null); setActiveProjectId(null);
   }, [isDirty, t]);
+  useEffect(() => {
+    const open = (event: Event) => {
+      const project = (event as CustomEvent<{ project?: { id: string; data: CalculatorProjectData } }>).detail?.project;
+      if (project) loadWorkspaceProject(project.data, project.id);
+    };
+    const create = () => newWorkspaceProject();
+    window.addEventListener("blocksystem:open-project", open);
+    window.addEventListener("blocksystem:new-project", create);
+    return () => { window.removeEventListener("blocksystem:open-project", open); window.removeEventListener("blocksystem:new-project", create); };
+  }, [loadWorkspaceProject, newWorkspaceProject]);
   const selectedBlock = useMemo<BlockDefinition>(
     () =>
       data.settings.blockMode === "custom"

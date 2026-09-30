@@ -46,6 +46,7 @@ export function WorkspaceConsole({ data, activeProjectId, saveState, onSave, onN
   useEffect(() => { const timer = window.setTimeout(refresh, 0); const unsubscribe = subscribeToSavedProjects(refresh); return () => { window.clearTimeout(timer); unsubscribe(); }; }, []);
   useEffect(() => { const timer = window.setTimeout(() => setSearchTerm(query.trim().toLocaleLowerCase()), 180); return () => window.clearTimeout(timer); }, [query]);
   useEffect(() => { if (searchOpen) window.setTimeout(() => searchInput.current?.focus(), 0); }, [searchOpen]);
+  useEffect(() => { const openSearch = () => setSearchOpen(true); window.addEventListener("blocksystem:workspace-search", openSearch); return () => window.removeEventListener("blocksystem:workspace-search", openSearch); }, []);
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {
       if (!(event.ctrlKey || event.metaKey)) return;
