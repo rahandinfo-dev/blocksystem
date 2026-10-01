@@ -9,10 +9,10 @@ import { useI18n } from "@/lib/i18n";
 
 type Field = "displayName" | "username" | "email" | "password" | "confirmPassword";
 type Form = Record<Field, string>;
-type ServerCode = "DISPLAY_NAME_INVALID" | "USERNAME_INVALID" | "EMAIL_INVALID" | "PASSWORD_MISMATCH" | "PASSWORD_INVALID" | "EMAIL_TAKEN" | "USERNAME_TAKEN" | "EMAIL_DELIVERY_UNAVAILABLE" | "RATE_LIMITED" | "VALIDATION_ERROR";
+type ServerCode = "DISPLAY_NAME_INVALID" | "USERNAME_INVALID" | "EMAIL_INVALID" | "PASSWORD_MISMATCH" | "PASSWORD_INVALID" | "EMAIL_TAKEN" | "USERNAME_TAKEN" | "EMAIL_NOT_CONFIGURED" | "EMAIL_ORIGIN_INVALID" | "EMAIL_SENDER_REJECTED" | "EMAIL_RECIPIENT_NOT_ALLOWED" | "EMAIL_DELIVERY_UNAVAILABLE" | "REGISTRATION_STORAGE_UNAVAILABLE" | "RATE_LIMITED" | "VALIDATION_ERROR";
 
 const serverMessages: Record<ServerCode, string> = {
-  DISPLAY_NAME_INVALID: "auth.displayNameInvalid", USERNAME_INVALID: "auth.usernameInvalid", EMAIL_INVALID: "auth.emailInvalid", PASSWORD_MISMATCH: "auth.passwordMatch", PASSWORD_INVALID: "auth.passwordInvalid", EMAIL_TAKEN: "auth.emailTaken", USERNAME_TAKEN: "auth.usernameTaken", EMAIL_DELIVERY_UNAVAILABLE: "auth.emailUnavailable", RATE_LIMITED: "auth.rateLimited", VALIDATION_ERROR: "auth.fixForm",
+  DISPLAY_NAME_INVALID: "auth.displayNameInvalid", USERNAME_INVALID: "auth.usernameInvalid", EMAIL_INVALID: "auth.emailInvalid", PASSWORD_MISMATCH: "auth.passwordMatch", PASSWORD_INVALID: "auth.passwordInvalid", EMAIL_TAKEN: "auth.emailTaken", USERNAME_TAKEN: "auth.usernameTaken", EMAIL_NOT_CONFIGURED: "auth.emailNotConfigured", EMAIL_ORIGIN_INVALID: "auth.emailOriginInvalid", EMAIL_SENDER_REJECTED: "auth.emailSenderRejected", EMAIL_RECIPIENT_NOT_ALLOWED: "auth.emailRecipientNotAllowed", EMAIL_DELIVERY_UNAVAILABLE: "auth.emailUnavailable", REGISTRATION_STORAGE_UNAVAILABLE: "auth.registrationStorageUnavailable", RATE_LIMITED: "auth.rateLimited", VALIDATION_ERROR: "auth.fixForm",
 };
 const strengthStyle = {
   weak: { label: "auth.weak", width: "25%", color: "#dc2626" },

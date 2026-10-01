@@ -63,26 +63,17 @@ export async function createUser(store: VerificationStore, input: { email: strin
   const id = randomUUID(); const email = normalizeEmail(input.email); const displayName = input.displayName.trim().slice(0, 120); const username = normalizeUsername(input.username ?? `user-${id.replace(/-/g, "").slice(0, 12)}`);
   if (!validEmail(email) || !validUsername(username) || !displayName || !roles.includes(input.role)) throw new Error("Invalid user");
   const passwordHash = await hashPassword(input.password);
-  if (!(await store.authSetIfAbsent(emailKey(email), id))) throw new Error("User exists");
-  if (!(await store.authSetIfAbsent(usernameKey(username), id))) { await store.authDelete(emailKey(email)); throw new Error("Username exists"); }
   const now = new Date().toISOString();
   const user: User = { id, email, username, displayName, role: input.role, status: "ACTIVE", passwordHash, ...(input.emailVerified ? { emailVerifiedAt: now } : { emailVerificationRequired: true }), createdAt: now, updatedAt: now };
-  try {
-    await store.authSet(userKey(id), JSON.stringify(user));
-    await store.authAddMember(userIndex, id);
-  } catch (error) {
-    await store.authDelete(emailKey(email)); await store.authDelete(usernameKey(username));
-    throw error;
-  }
+  const result = await store.authCreateUser({ emailKey: emailKey(email), usernameKey: usernameKey(username), userKey: userKey(id), usersKey: userIndex, userId: id, value: JSON.stringify(user) });
+  if (result === "email_taken") throw new Error("User exists");
+  if (result === "username_taken") throw new Error("Username exists");
   return toSafeUser(user);
 }
 export async function deleteUser(store: VerificationStore, id: string) {
   const user = await getUserRecord(store, id);
   if (!user) return false;
-  await store.authDelete(emailKey(user.email));
-  await store.authDelete(usernameKey(user.username));
-  await store.authDelete(userKey(user.id));
-  await store.authRemoveMember(userIndex, user.id);
+  await store.authDeleteUser({ emailKey: emailKey(user.email), usernameKey: usernameKey(user.username), userKey: userKey(user.id), usersKey: userIndex, userId: user.id });
   return true;
 }
 export async function updateUser(store: VerificationStore, id: string, patch: { displayName?: string; role?: Role; status?: User["status"] }): Promise<SafeUser | null> {

@@ -4,7 +4,7 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { auditEvent, safeAuditContext } from "./audit.ts";
-import { verificationEnvironment } from "./server-env.ts";
+import { redisRestEnvironment, verificationEnvironment } from "./server-env.ts";
 import { FileVerificationStore } from "./verification-store.ts";
 import {
   createWorkspaceBackup,
@@ -36,9 +36,9 @@ test("production environment validation rejects public secrets and unsafe URLs",
     }),
     environment({ VERIFICATION_ADMIN_SECRET: "short" }),
     environment({ NEXT_PUBLIC_VERIFICATION_ADMIN_SECRET: "leak" }),
-    environment({ UPSTASH_REDIS_REST_TOKEN: undefined }),
   ])
     assert.throws(() => verificationEnvironment(env));
+  assert.throws(() => redisRestEnvironment(environment({ UPSTASH_REDIS_REST_TOKEN: undefined })));
 });
 test("Vercel KV variables provide a server-only Redis fallback without overriding Upstash", () => {
   const fallback = environment({ UPSTASH_REDIS_REST_URL: undefined, UPSTASH_REDIS_REST_TOKEN: undefined, KV_REST_API_URL: "https://kv.example.test", KV_REST_API_TOKEN: "k".repeat(40) });
@@ -47,6 +47,11 @@ test("Vercel KV variables provide a server-only Redis fallback without overridin
   const preferred = environment({ KV_REST_API_URL: "https://kv.example.test", KV_REST_API_TOKEN: "k".repeat(40) });
   assert.equal(verificationEnvironment(preferred).redisUrl, "https://redis.example.test");
   assert.throws(() => verificationEnvironment(environment({ NEXT_PUBLIC_KV_REST_API_TOKEN: "leak" })));
+});
+test("registration storage does not require the legacy verification-admin secret", () => {
+  const production = environment({ VERIFICATION_ADMIN_SECRET: undefined, UPSTASH_REDIS_REST_URL: undefined, UPSTASH_REDIS_REST_TOKEN: undefined, KV_REST_API_URL: "https://kv.example.test", KV_REST_API_TOKEN: "k".repeat(40) });
+  assert.deepEqual(redisRestEnvironment(production), { url: "https://kv.example.test", token: "k".repeat(40) });
+  assert.throws(() => redisRestEnvironment(environment({ UPSTASH_REDIS_REST_TOKEN: undefined, KV_REST_API_TOKEN: undefined, KV_REST_API_READ_ONLY_TOKEN: "r".repeat(40), KV_URL: "rediss://ignored.example.test", REDIS_URL: "redis://ignored.example.test" })));
 });
 test("append-only audit filtering and persistent rate limits exclude sensitive material", async () => {
   const store = new FileVerificationStore(

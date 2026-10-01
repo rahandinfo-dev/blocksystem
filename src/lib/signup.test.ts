@@ -45,9 +45,31 @@ test("signup rejects invalid passwords, mismatches and duplicate normalized iden
   assert.deepEqual(await registerAccount(data, { ...validInput, username: "ENGINEER.ONE", email: "other@example.test" }, async () => "sent"), { ok: false, code: "USERNAME_TAKEN" });
 });
 
-test("signup rolls back an unverified account when email delivery is unavailable", async () => {
+test("signup rolls back an unverified account when email delivery is unavailable and permits a retry", async () => {
   const data = await store();
-  const result = await registerAccount(data, validInput, async () => "failed");
+  const result = await registerAccount(data, validInput, async () => "unavailable");
   assert.deepEqual(result, { ok: false, code: "EMAIL_DELIVERY_UNAVAILABLE" });
   assert.equal(await getUserByEmail(data, validInput.email), null);
+  assert.equal((await registerAccount(data, validInput, async () => "sent")).ok, true);
+});
+
+test("signup reports safe Resend delivery categories and rolls each account back", async () => {
+  const outcomes = [
+    ["not_configured", "EMAIL_NOT_CONFIGURED"],
+    ["origin_invalid", "EMAIL_ORIGIN_INVALID"],
+    ["sender_rejected", "EMAIL_SENDER_REJECTED"],
+    ["recipient_not_allowed", "EMAIL_RECIPIENT_NOT_ALLOWED"],
+  ] as const;
+  for (const [delivery, code] of outcomes) {
+    const data = await store();
+    assert.deepEqual(await registerAccount(data, validInput, async () => delivery), { ok: false, code });
+    assert.equal(await getUserByEmail(data, validInput.email), null);
+  }
+});
+
+test("signup safely repairs an orphaned identity index left by an interrupted legacy write", async () => {
+  const data = await store();
+  await data.authSet("bs:auth:email:engineer@example.test", "00000000-0000-0000-0000-000000000000");
+  assert.equal((await registerAccount(data, validInput, async () => "sent")).ok, true);
+  assert.ok(await getUserByEmail(data, validInput.email));
 });

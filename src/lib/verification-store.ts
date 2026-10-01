@@ -3,7 +3,7 @@ import { join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import type { VerificationRecord } from "./verification.ts";
 import type { AuditEvent } from "./audit.ts";
-import { verificationEnvironment } from "./server-env.ts";
+import { redisRestEnvironment, verificationEnvironment } from "./server-env.ts";
 
 /** Only this adapter handles persistence. Production uses an external Redis REST service. */
 export interface VerificationStore {
@@ -11,6 +11,8 @@ export interface VerificationStore {
   authGet(key: string): Promise<string | null>;
   authSet(key: string, value: string): Promise<void>;
   authSetIfAbsent(key: string, value: string): Promise<boolean>;
+  authCreateUser(input: { emailKey: string; usernameKey: string; userKey: string; usersKey: string; userId: string; value: string }): Promise<"created" | "email_taken" | "username_taken">;
+  authDeleteUser(input: { emailKey: string; usernameKey: string; userKey: string; usersKey: string; userId: string }): Promise<void>;
   authCompareAndSet(key: string, expected: string, value: string): Promise<boolean>;
   authDelete(key: string): Promise<void>;
   authMembers(key: string): Promise<string[]>;
@@ -55,6 +57,18 @@ export class RedisVerificationStore implements VerificationStore {
   async authGet(key: string) { return this.command<string | null>("GET", key); }
   async authSet(key: string, value: string) { await this.command<string>("SET", key, value); }
   async authSetIfAbsent(key: string, value: string) { return (await this.command<string | null>("SET", key, value, "NX")) === "OK"; }
+  async authCreateUser(input: { emailKey: string; usernameKey: string; userKey: string; usersKey: string; userId: string; value: string }) {
+    const result = await this.command<number>(
+      "EVAL",
+      "local emailOwner=redis.call('GET',KEYS[1]); if emailOwner then if redis.call('EXISTS',ARGV[4]..emailOwner)==0 then redis.call('DEL',KEYS[1]) else return 1 end end; local usernameOwner=redis.call('GET',KEYS[2]); if usernameOwner then if redis.call('EXISTS',ARGV[4]..usernameOwner)==0 then redis.call('DEL',KEYS[2]) else return 2 end end; redis.call('SET',KEYS[1],ARGV[1]); redis.call('SET',KEYS[2],ARGV[1]); redis.call('SET',KEYS[3],ARGV[2]); redis.call('SADD',KEYS[4],ARGV[1]); return 0",
+      4, input.emailKey, input.usernameKey, input.userKey, input.usersKey,
+      input.userId, input.value, input.userKey.slice(0, -input.userId.length),
+    );
+    return result === 0 ? "created" : result === 1 ? "email_taken" : "username_taken";
+  }
+  async authDeleteUser(input: { emailKey: string; usernameKey: string; userKey: string; usersKey: string; userId: string }) {
+    await this.command<number>("EVAL", "if redis.call('GET',KEYS[1])==ARGV[1] then redis.call('DEL',KEYS[1]) end; if redis.call('GET',KEYS[2])==ARGV[1] then redis.call('DEL',KEYS[2]) end; redis.call('DEL',KEYS[3]); redis.call('SREM',KEYS[4],ARGV[1]); return 1", 4, input.emailKey, input.usernameKey, input.userKey, input.usersKey, input.userId);
+  }
   async authCompareAndSet(key: string, expected: string, value: string) { return (await this.command<number>("EVAL", "if redis.call('GET',KEYS[1])==ARGV[1] then redis.call('SET',KEYS[1],ARGV[2]); return 1 end return 0", 1, key, expected, value)) === 1; }
   async authDelete(key: string) { await this.command<number>("DEL", key); }
   async authMembers(key: string) { return this.command<string[]>("SMEMBERS", key); }
@@ -193,6 +207,37 @@ export class FileVerificationStore implements VerificationStore {
   authGet(key: string) { return this.transaction((data) => data.auth?.[key] ?? null); }
   authSet(key: string, value: string) { return this.transaction((data) => { (data.auth ??= {})[key] = value; }, true); }
   authSetIfAbsent(key: string, value: string) { return this.transaction((data) => { const auth = (data.auth ??= {}); if (auth[key] !== undefined) return false; auth[key] = value; return true; }, true); }
+  authCreateUser(input: { emailKey: string; usernameKey: string; userKey: string; usersKey: string; userId: string; value: string }) {
+    return this.transaction((data) => {
+      const auth = (data.auth ??= {});
+      const prefix = input.userKey.slice(0, -input.userId.length);
+      const owner = (key: string) => auth[key];
+      const clearOrphan = (key: string) => {
+        const id = owner(key);
+        if (id && auth[`${prefix}${id}`] === undefined) delete auth[key];
+      };
+      clearOrphan(input.emailKey);
+      if (owner(input.emailKey)) return "email_taken" as const;
+      clearOrphan(input.usernameKey);
+      if (owner(input.usernameKey)) return "username_taken" as const;
+      auth[input.emailKey] = input.userId;
+      auth[input.usernameKey] = input.userId;
+      auth[input.userKey] = input.value;
+      const users = ((data.authSets ??= {})[input.usersKey] ??= []);
+      if (!users.includes(input.userId)) users.push(input.userId);
+      return "created" as const;
+    }, true);
+  }
+  authDeleteUser(input: { emailKey: string; usernameKey: string; userKey: string; usersKey: string; userId: string }) {
+    return this.transaction((data) => {
+      const auth = (data.auth ??= {});
+      if (auth[input.emailKey] === input.userId) delete auth[input.emailKey];
+      if (auth[input.usernameKey] === input.userId) delete auth[input.usernameKey];
+      delete auth[input.userKey];
+      const users = (data.authSets ??= {})[input.usersKey];
+      if (users) data.authSets![input.usersKey] = users.filter((id) => id !== input.userId);
+    }, true);
+  }
   authCompareAndSet(key: string, expected: string, value: string) { return this.transaction((data) => { const auth = (data.auth ??= {}); if (auth[key] !== expected) return false; auth[key] = value; return true; }, true); }
   authDelete(key: string) { return this.transaction((data) => { delete (data.auth ?? {})[key]; }, true); }
   authMembers(key: string) { return this.transaction((data) => [...(data.authSets?.[key] ?? [])]); }
@@ -269,10 +314,8 @@ export class FileVerificationStore implements VerificationStore {
 }
 export function verificationStore(): VerificationStore {
   const config = verificationEnvironment();
-  const url = config.redisUrl;
-  const secret = config.redisToken;
-  if (url && secret && new URL(url).protocol === "https:")
-    return new RedisVerificationStore(url, secret);
+  if (config.redisUrl && config.redisToken)
+    return new RedisVerificationStore(config.redisUrl, config.redisToken);
   if (
     !process.env.VERCEL &&
     process.env.NODE_ENV !== "production" &&
@@ -281,5 +324,8 @@ export function verificationStore(): VerificationStore {
     return new FileVerificationStore(
       resolve(process.env.VERIFICATION_DEV_DIRECTORY),
     );
-  throw new Error("Verification store unavailable");
+  // Keep local development explicit, but return a safe configuration category
+  // in production instead of coupling storage to the legacy admin secret.
+  const redis = redisRestEnvironment();
+  return new RedisVerificationStore(redis.url, redis.token);
 }

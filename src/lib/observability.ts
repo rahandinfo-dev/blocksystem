@@ -47,6 +47,11 @@ export function log(level: LogLevel, event: string, context: Record<string, unkn
   const entry = JSON.stringify({ timestamp: new Date().toISOString(), level, event, ...redactLogValue(context) as object });
   console[level === "debug" ? "debug" : level](entry);
 }
+export function registrationFailure(request: Request, category: string, status = 503) {
+  const id = requestId(request);
+  log("error", "auth.registration_failed", { category, requestId: id });
+  return Response.json({ error: { code: category, requestId: id } }, { status, headers: { "Cache-Control": "no-store", "X-Request-ID": id } });
+}
 export function apiError(
   code: ApiErrorCode,
   status: number,

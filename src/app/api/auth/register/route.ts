@@ -1,6 +1,6 @@
 import { auditEvent } from "@/lib/audit";
 import { sendAuthEmail } from "@/lib/auth-email";
-import { apiError, apiHeaders } from "@/lib/observability";
+import { apiError, apiHeaders, log, registrationFailure, requestId } from "@/lib/observability";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { limitedJson, sameOrigin } from "@/lib/verification-auth";
 import { verificationStore } from "@/lib/verification-store";
@@ -14,8 +14,18 @@ export async function POST(request: Request) {
     const store = verificationStore();
     if (!(await enforceRateLimit(store, request, "signup"))) return Response.json({ error: { code: "RATE_LIMITED" } }, { status: 429, headers: { ...apiHeaders(request), "Retry-After": "300" } });
     const result = await registerAccount(store, body as RegistrationInput, ({ to, token, expiresAt }) => sendAuthEmail({ to, subject: "Verify your BlockSystem email", path: `/verify-email?token=${encodeURIComponent(token)}`, action: "verify your email address", expires: expiresAt }));
-    if (!result.ok) return Response.json({ error: { code: result.code } }, { status: result.code === "EMAIL_TAKEN" || result.code === "USERNAME_TAKEN" ? 409 : result.code === "EMAIL_DELIVERY_UNAVAILABLE" ? 503 : 400, headers: apiHeaders(request) });
-    await store.appendAudit(auditEvent({ action: "auth.user.created", entityType: "user", entityReference: result.userId, result: "success", context: { emailDelivery: "sent" } }));
+    if (!result.ok) {
+      const status = result.code === "EMAIL_TAKEN" || result.code === "USERNAME_TAKEN" ? 409 : result.code.startsWith("EMAIL_") ? 503 : 400;
+      const id = requestId(request);
+      if (status >= 500) log("warn", "auth.registration_rejected", { category: result.code, requestId: id });
+      return Response.json({ error: { code: result.code, requestId: id } }, { status, headers: { "Cache-Control": "no-store", "X-Request-ID": id } });
+    }
+    try {
+      await store.appendAudit(auditEvent({ action: "auth.user.created", entityType: "user", entityReference: result.userId, result: "success", context: { emailDelivery: "sent" } }));
+    } catch { log("warn", "auth.registration_audit_failed", { category: "AUDIT_WRITE_UNAVAILABLE", requestId: requestId(request) }); }
     return Response.json({ accepted: true, delivery: "sent" }, { status: 201, headers: apiHeaders(request) });
-  } catch { return apiError("DEPENDENCY_UNAVAILABLE", 503, request); }
+  } catch (error) {
+    if (error instanceof SyntaxError || (error instanceof Error && error.message === "Invalid input")) return apiError("VALIDATION_ERROR", 400, request);
+    return registrationFailure(request, "REGISTRATION_STORAGE_UNAVAILABLE");
+  }
 }

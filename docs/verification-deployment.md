@@ -17,7 +17,9 @@ production variables and redeploy:
 - `UPSTASH_REDIS_REST_TOKEN`: database write credential.
 - Vercel KV projects may instead provide `KV_REST_API_URL` and
   `KV_REST_API_TOKEN`. If both pairs exist, the explicit `UPSTASH_*` pair is used.
-- `VERIFICATION_ADMIN_SECRET`: randomly generated secret of at least 32 characters.
+- `VERIFICATION_ADMIN_SECRET`: optional, randomly generated secret of at least 32
+  characters for the legacy verification-administrator session only. It is not a
+  registration, Redis, or email requirement.
 - `VERIFICATION_PUBLIC_ORIGIN`: permanent canonical HTTPS origin, e.g.
   `https://your-project.example`. No path, credentials, query or fragment.
 - `AUTH_SESSION_SECRET`: a separate random server-only value of at least 32 characters
@@ -29,6 +31,17 @@ production variables and redeploy:
   verified sender address used for account verification and password-reset emails.
   Set both in Vercel and redeploy. Email delivery stays disabled rather than simulated
   when either value is absent.
+
+`KV_REST_API_READ_ONLY_TOKEN` is deliberately never selected for this application:
+registration needs Redis writes. `KV_URL` and `REDIS_URL` are TCP connection strings
+and are likewise not used by this serverless HTTPS REST adapter. Configure one complete
+write-capable pair—either `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` or
+`KV_REST_API_URL`/`KV_REST_API_TOKEN`—and do not mix pairs.
+
+If `AUTH_EMAIL_FROM` is Resend's `onboarding@resend.dev` test sender, Resend may
+restrict delivery to permitted test recipients. The signup API reports this as the
+safe `EMAIL_RECIPIENT_NOT_ALLOWED` code and rolls the attempted account back; use a
+verified sending domain for normal production signups.
 
 Use a durable database with backups and no automatic expiry/eviction of verification
 records. Do not share its credentials with the browser or prefix them `NEXT_PUBLIC_`.
