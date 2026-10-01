@@ -10,6 +10,7 @@ export interface VerificationStore {
   ping(): Promise<void>;
   authGet(key: string): Promise<string | null>;
   authSet(key: string, value: string): Promise<void>;
+  authTake(key: string, usedKey: string, seconds: number): Promise<{ value: string | null; used: boolean }>;
   authSetIfAbsent(key: string, value: string): Promise<boolean>;
   authCreateUser(input: { emailKey: string; usernameKey: string; userKey: string; usersKey: string; userId: string; value: string }): Promise<"created" | "email_taken" | "username_taken">;
   authDeleteUser(input: { emailKey: string; usernameKey: string; userKey: string; usersKey: string; userId: string }): Promise<void>;
@@ -56,6 +57,10 @@ export class RedisVerificationStore implements VerificationStore {
   }
   async authGet(key: string) { return this.command<string | null>("GET", key); }
   async authSet(key: string, value: string) { await this.command<string>("SET", key, value); }
+  async authTake(key: string, usedKey: string, seconds: number) {
+    const result = await this.command<[number, string | null]>("EVAL", "local value=redis.call('GET',KEYS[1]); if value then redis.call('DEL',KEYS[1]); redis.call('SET',KEYS[2],'1','EX',ARGV[1]); return {1,value} end; if redis.call('EXISTS',KEYS[2])==1 then return {2,false} end; return {0,false}", 2, key, usedKey, seconds);
+    return { value: result[0] === 1 ? result[1] : null, used: result[0] === 2 };
+  }
   async authSetIfAbsent(key: string, value: string) { return (await this.command<string | null>("SET", key, value, "NX")) === "OK"; }
   async authCreateUser(input: { emailKey: string; usernameKey: string; userKey: string; usersKey: string; userId: string; value: string }) {
     const result = await this.command<number>(
@@ -160,6 +165,7 @@ type LocalData = {
   rate: Record<string, { count: number; expiresAt: number }>;
   auth?: Record<string, string>;
   authSets?: Record<string, string[]>;
+  authExpiry?: Record<string, number>;
 };
 let pending: Promise<unknown> = Promise.resolve();
 /** Explicit local development/test adapter, never selected on Vercel or in production. */
@@ -186,9 +192,14 @@ export class FileVerificationStore implements VerificationStore {
           data.records ??= [];
           data.auth ??= {};
           data.authSets ??= {};
+          data.authExpiry ??= {};
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-          data = { sequences: {}, records: [], audit: [], rate: {}, auth: {}, authSets: {} };
+          data = { sequences: {}, records: [], audit: [], rate: {}, auth: {}, authSets: {}, authExpiry: {} };
+        }
+        const now = Date.now();
+        for (const [key, expiresAt] of Object.entries(data.authExpiry ?? {})) {
+          if (expiresAt <= now) { delete data.auth?.[key]; delete data.authExpiry?.[key]; }
         }
         const result = fn(data);
         if (write) {
@@ -206,6 +217,17 @@ export class FileVerificationStore implements VerificationStore {
   }
   authGet(key: string) { return this.transaction((data) => data.auth?.[key] ?? null); }
   authSet(key: string, value: string) { return this.transaction((data) => { (data.auth ??= {})[key] = value; }, true); }
+  authTake(key: string, usedKey: string, seconds: number) {
+    return this.transaction((data) => {
+      const auth = (data.auth ??= {});
+      const value = auth[key] ?? null;
+      if (!value) return { value: null, used: auth[usedKey] !== undefined };
+      delete auth[key];
+      auth[usedKey] = "1";
+      (data.authExpiry ??= {})[usedKey] = Date.now() + seconds * 1000;
+      return { value, used: false };
+    }, true);
+  }
   authSetIfAbsent(key: string, value: string) { return this.transaction((data) => { const auth = (data.auth ??= {}); if (auth[key] !== undefined) return false; auth[key] = value; return true; }, true); }
   authCreateUser(input: { emailKey: string; usernameKey: string; userKey: string; usersKey: string; userId: string; value: string }) {
     return this.transaction((data) => {

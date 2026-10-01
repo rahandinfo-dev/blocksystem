@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { sendAuthEmail } from "./auth-email.ts";
+import { sendAuthEmail, verificationEmailSubject } from "./auth-email.ts";
 
 const variables = ["RESEND_API_KEY", "AUTH_EMAIL_FROM", "VERIFICATION_PUBLIC_ORIGIN", "NODE_ENV"] as const;
 const original = Object.fromEntries(variables.map((name) => [name, process.env[name]]));
@@ -38,5 +38,24 @@ test("email sender classifies rejected senders and malformed public origins safe
     assert.equal(await sendAuthEmail(input), "sender_rejected");
     environment.VERIFICATION_PUBLIC_ORIGIN = "https://app.example.test/not-allowed";
     assert.equal(await sendAuthEmail(input), "origin_invalid");
+  } finally { restore(); }
+});
+
+test("verification email uses the RekApps sender and Kurdish RTL HTML with plain-text fallback", async () => {
+  configured();
+  let payload: Record<string, unknown> | undefined;
+  globalThis.fetch = async (_url, init) => {
+    payload = JSON.parse(String(init?.body)) as Record<string, unknown>;
+    return new Response(JSON.stringify({ id: "accepted" }), { status: 200 });
+  };
+  try {
+    assert.equal(await sendAuthEmail({ ...input, subject: "ignored", template: "verification" }), "sent");
+    assert.equal(payload?.from, "RekApps <onboarding@resend.dev>");
+    assert.equal(payload?.subject, verificationEmailSubject);
+    assert.match(String(payload?.html), /lang="ckb" dir="rtl"/);
+    assert.match(String(payload?.html), /پشتڕاستکردنەوەی ئیمەیڵ/);
+    assert.match(String(payload?.text), /پشتڕاستکردنەوەی ئیمەیڵ/);
+    assert.match(String(payload?.text), /token=opaque/);
+    assert.doesNotMatch(String(payload?.html), /Continue securely|BlockSystem/);
   } finally { restore(); }
 });

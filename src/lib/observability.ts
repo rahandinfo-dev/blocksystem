@@ -9,7 +9,11 @@ export type ApiErrorCode =
   | "CONFLICT"
   | "NETWORK_ERROR"
   | "DEPENDENCY_UNAVAILABLE"
-  | "INTERNAL_ERROR";
+  | "INTERNAL_ERROR"
+  | "EMAIL_VERIFICATION_INVALID"
+  | "EMAIL_VERIFICATION_EXPIRED"
+  | "EMAIL_VERIFICATION_ALREADY_USED"
+  | "EMAIL_VERIFICATION_ALREADY_VERIFIED";
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
 const sensitive = /authorization|cookie|password|secret|token|credential|snapshot|projectdata|backup|redis/i;
@@ -24,6 +28,10 @@ const messages: Record<ApiErrorCode, string> = {
   NETWORK_ERROR: "The network request did not complete.",
   DEPENDENCY_UNAVAILABLE: "This service is temporarily unavailable.",
   INTERNAL_ERROR: "This service is temporarily unavailable.",
+  EMAIL_VERIFICATION_INVALID: "This verification link is invalid.",
+  EMAIL_VERIFICATION_EXPIRED: "This verification link has expired.",
+  EMAIL_VERIFICATION_ALREADY_USED: "This verification link has already been used.",
+  EMAIL_VERIFICATION_ALREADY_VERIFIED: "This email address has already been verified.",
 };
 
 export function requestId(request?: Request): string {

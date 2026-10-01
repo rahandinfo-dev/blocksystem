@@ -31,7 +31,7 @@ test("valid signup normalizes identity, sends verification and verifies the acco
   assert.ok(token);
   const user = await getUserByEmail(data, " engineer@EXAMPLE.test ");
   assert.equal(user?.username, "engineer.one");
-  assert.equal(await consumeChallenge(data, token, "verify-email"), user?.id);
+  assert.deepEqual(await consumeChallenge(data, token, "verify-email"), { status: "valid", userId: user?.id });
   assert.ok(user && await verifyUserEmail(data, user.id));
   assert.ok((await getUserByUsername(data, "ENGINEER.ONE"))?.emailVerifiedAt);
 });

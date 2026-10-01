@@ -8,6 +8,14 @@ const en = {
   "auth.emailSenderRejected": "The verification email sender is not accepted. Please try again later.",
   "auth.emailRecipientNotAllowed": "This test email sender cannot deliver to this address. Please contact support.",
   "auth.registrationStorageUnavailable": "Account storage is temporarily unavailable. Please try again later.",
+  "auth.verifyEmailTitle": "Email verification",
+  "auth.verifyEmailSuccess": "Your email address has been verified.",
+  "auth.verifyEmailInvalid": "This verification link is invalid.",
+  "auth.verifyEmailExpired": "This verification link has expired.",
+  "auth.verifyEmailUsed": "This verification link has already been used.",
+  "auth.verifyEmailAlreadyVerified": "This email address has already been verified.",
+  "auth.verifyEmailUnavailable": "Email verification is temporarily unavailable. Please try again later.",
+  "auth.continueToLogin": "Continue to sign in",
 } as const;
 type Key = keyof typeof en;
 
@@ -21,6 +29,14 @@ export const phase17Messages: Record<Language, Record<Key, string>> = {
     "auth.emailSenderRejected":"نێرەری ئیمەیڵی پشتڕاستکردنەوە پەسەند نەکراوە. تکایە دواتر هەوڵ بدەوە.",
     "auth.emailRecipientNotAllowed":"نێرەری تاقیکردنەوەی ئیمەیڵ ناتوانێت بۆ ئەم ناونیشانە بنێرێت. تکایە پەیوەندی بە پشتگیری بکە.",
     "auth.registrationStorageUnavailable":"کۆگای هەژمار کاتێک بەردەست نییە. تکایە دواتر هەوڵ بدەوە.",
+    "auth.verifyEmailTitle":"پشتڕاستکردنەوەی ئیمەیڵ",
+    "auth.verifyEmailSuccess":"ناونیشانی ئیمەیڵەکەت بە سەرکەوتوویی پشتڕاست کرایەوە.",
+    "auth.verifyEmailInvalid":"ئەم بەستەرەی پشتڕاستکردنەوە نادروستە.",
+    "auth.verifyEmailExpired":"ماوەی ئەم بەستەرەی پشتڕاستکردنەوە بەسەرچووە.",
+    "auth.verifyEmailUsed":"ئەم بەستەرەی پشتڕاستکردنەوە پێشتر بەکارهاتووە.",
+    "auth.verifyEmailAlreadyVerified":"ئەم ناونیشانی ئیمەیڵە پێشتر پشتڕاست کراوەتەوە.",
+    "auth.verifyEmailUnavailable":"پشتڕاستکردنەوەی ئیمەیڵ کاتێک بەردەست نییە. تکایە دواتر هەوڵ بدەوە.",
+    "auth.continueToLogin":"بەردەوام بە بۆ چوونەژوورەوە",
   },
   ar: {
     "auth.createAccount":"إنشاء حساب", "auth.username":"اسم المستخدم", "auth.confirmPassword":"تأكيد كلمة المرور", "auth.passwordMatch":"كلمتا المرور غير متطابقتين.", "auth.passwordStrength":"قوة كلمة المرور", "auth.weak":"ضعيفة", "auth.medium":"متوسطة", "auth.strong":"قوية", "auth.veryStrong":"قوية جداً", "auth.accountCreated":"تم إنشاء الحساب. تحقق من بريدك الإلكتروني قبل تسجيل الدخول.", "auth.verificationRequired":"تحقق من بريدك الإلكتروني قبل تسجيل الدخول.", "auth.forgotPassword":"هل نسيت كلمة المرور؟", "auth.resetSent":"إذا كان الحساب موجوداً، فقد أُرسل رابط إعادة التعيين.", "auth.identifier":"البريد الإلكتروني أو اسم المستخدم", "auth.verifySuccess":"تم التحقق من بريدك الإلكتروني. يمكنك الآن تسجيل الدخول.",
@@ -30,5 +46,13 @@ export const phase17Messages: Record<Language, Record<Key, string>> = {
     "auth.emailSenderRejected":"لم تتم الموافقة على مرسل رسالة التحقق. يرجى المحاولة لاحقاً.",
     "auth.emailRecipientNotAllowed":"لا يمكن لمرسل البريد التجريبي التسليم إلى هذا العنوان. يرجى الاتصال بالدعم.",
     "auth.registrationStorageUnavailable":"تخزين الحسابات غير متاح مؤقتاً. يرجى المحاولة لاحقاً.",
+    "auth.verifyEmailTitle":"التحقق من البريد الإلكتروني",
+    "auth.verifyEmailSuccess":"تم التحقق من عنوان بريدك الإلكتروني بنجاح.",
+    "auth.verifyEmailInvalid":"رابط التحقق هذا غير صالح.",
+    "auth.verifyEmailExpired":"انتهت صلاحية رابط التحقق هذا.",
+    "auth.verifyEmailUsed":"تم استخدام رابط التحقق هذا بالفعل.",
+    "auth.verifyEmailAlreadyVerified":"تم التحقق من عنوان البريد الإلكتروني هذا بالفعل.",
+    "auth.verifyEmailUnavailable":"التحقق من البريد الإلكتروني غير متاح مؤقتاً. يرجى المحاولة لاحقاً.",
+    "auth.continueToLogin":"المتابعة لتسجيل الدخول",
   },
 };

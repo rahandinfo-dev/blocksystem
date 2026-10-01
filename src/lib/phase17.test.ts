@@ -26,9 +26,23 @@ test("email challenges are random, digest-backed, purpose-bound and single-use",
   const data = await store();
   const { token } = await createChallenge(data, "11111111-1111-4111-8111-111111111111", "verify-email");
   assert.match(token, /^[A-Za-z0-9_-]{40,80}$/);
-  assert.equal(await consumeChallenge(data, token, "reset-password"), null);
-  assert.equal(await consumeChallenge(data, token, "verify-email"), "11111111-1111-4111-8111-111111111111");
-  assert.equal(await consumeChallenge(data, token, "verify-email"), null);
+  assert.deepEqual(await consumeChallenge(data, token, "reset-password"), { status: "invalid" });
+  assert.deepEqual(await consumeChallenge(data, token, "verify-email"), { status: "valid", userId: "11111111-1111-4111-8111-111111111111" });
+  assert.deepEqual(await consumeChallenge(data, token, "verify-email"), { status: "used" });
+});
+
+test("email challenges preserve URL-safe tokens and classify invalid and expired links", async () => {
+  const data = await store();
+  const originalNow = Date.now;
+  try {
+    Date.now = () => 1_000;
+    const challenge = await createChallenge(data, "22222222-2222-4222-8222-222222222222", "verify-email");
+    const url = new URL(`/verify-email?token=${encodeURIComponent(challenge.token)}`, "https://app.example.test");
+    assert.equal(url.searchParams.get("token"), challenge.token);
+    assert.deepEqual(await consumeChallenge(data, "not-a-valid-token", "verify-email"), { status: "invalid" });
+    Date.now = () => 25 * 60 * 60 * 1000;
+    assert.deepEqual(await consumeChallenge(data, challenge.token, "verify-email"), { status: "expired" });
+  } finally { Date.now = originalNow; }
 });
 
 test("phase 17 account translations remain complete for RTL and LTR interfaces", () => {

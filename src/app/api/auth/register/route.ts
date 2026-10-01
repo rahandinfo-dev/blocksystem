@@ -1,5 +1,5 @@
 import { auditEvent } from "@/lib/audit";
-import { sendAuthEmail } from "@/lib/auth-email";
+import { sendAuthEmail, verificationEmailSubject } from "@/lib/auth-email";
 import { apiError, apiHeaders, log, registrationFailure, requestId } from "@/lib/observability";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { limitedJson, sameOrigin } from "@/lib/verification-auth";
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     if (!["displayName", "username", "email", "password", "confirmPassword"].every((key) => typeof body[key] === "string")) return Response.json({ error: { code: "VALIDATION_ERROR" } }, { status: 400, headers: apiHeaders(request) });
     const store = verificationStore();
     if (!(await enforceRateLimit(store, request, "signup"))) return Response.json({ error: { code: "RATE_LIMITED" } }, { status: 429, headers: { ...apiHeaders(request), "Retry-After": "300" } });
-    const result = await registerAccount(store, body as RegistrationInput, ({ to, token, expiresAt }) => sendAuthEmail({ to, subject: "Verify your BlockSystem email", path: `/verify-email?token=${encodeURIComponent(token)}`, action: "verify your email address", expires: expiresAt }));
+    const result = await registerAccount(store, body as RegistrationInput, ({ to, token, expiresAt }) => sendAuthEmail({ to, subject: verificationEmailSubject, path: `/verify-email?token=${encodeURIComponent(token)}`, action: "verify your email address", expires: expiresAt, template: "verification" }));
     if (!result.ok) {
       const status = result.code === "EMAIL_TAKEN" || result.code === "USERNAME_TAKEN" ? 409 : result.code.startsWith("EMAIL_") ? 503 : 400;
       const id = requestId(request);

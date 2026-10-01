@@ -223,6 +223,9 @@ test("protected administration, signed cookies, cross-origin rejection", () => {
       ),
       false,
     );
+    assert.ok(sameOrigin(new Request("https://example.com/api", { headers: { referer: "https://example.com/verify-email?token=opaque" } })));
+    assert.ok(sameOrigin(new Request("https://example.com/api", { headers: { "sec-fetch-site": "same-origin" } })));
+    assert.equal(sameOrigin(new Request("https://example.com/api", { headers: { referer: "https://evil.com/" } })), false);
   } finally {
     if (old === undefined) delete process.env.VERIFICATION_ADMIN_SECRET;
     else process.env.VERIFICATION_ADMIN_SECRET = old;

@@ -44,7 +44,15 @@ export function authorized(request: Request) {
 }
 export function sameOrigin(request: Request) {
   const origin = request.headers.get("origin");
-  return typeof origin === "string" && origin === new URL(request.url).origin;
+  const expected = new URL(request.url).origin;
+  if (origin) return origin === expected;
+  // Some in-app mobile browsers omit Origin on a same-site POST. Retain CSRF
+  // protection by requiring another browser-controlled same-origin signal.
+  const referer = request.headers.get("referer");
+  if (referer) {
+    try { return new URL(referer).origin === expected; } catch { return false; }
+  }
+  return request.headers.get("sec-fetch-site") === "same-origin";
 }
 export async function limitedJson(request: Request) {
   const headerLength = request.headers.get("content-length");
