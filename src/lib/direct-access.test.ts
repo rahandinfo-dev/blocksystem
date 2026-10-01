@@ -58,3 +58,25 @@ test("document verification routes, APIs, and UI components are absent", async (
   );
   assert.doesNotMatch(calculator, /ProjectDocuments|verification|certificate/i);
 });
+
+test("engineering import workspace is absent and the 2D plan uses an on-demand preview", async () => {
+  const removed = [
+    source("features", "calculator", "components", "engineering-takeoff.tsx"),
+    source("features", "calculator", "lib", "engineering-takeoff.ts"),
+    source("lib", "phase13-messages.ts"),
+  ];
+  for (const file of removed)
+    await assert.rejects(access(file, constants.F_OK));
+
+  const [calculator, plan] = await Promise.all([
+    readFile(source("features", "calculator", "components", "calculator.tsx"), "utf8"),
+    readFile(source("features", "calculator", "components", "floor-plan-workspace.tsx"), "utf8"),
+  ]);
+  assert.match(calculator, /FloorPlanPreview/);
+  assert.doesNotMatch(calculator, /EngineeringTakeoff|engineering-takeoff/);
+  assert.match(plan, /data-plan-preview-open/);
+  assert.match(plan, /open \? \(/);
+  assert.match(plan, /data-preview-close/);
+  assert.match(plan, /<FloorPlanWorkspace data=\{data\} onChange=\{onChange\}/);
+  assert.match(plan, /plan\.measure|plan\.export|plan\.print|plan\.fullscreen/);
+});

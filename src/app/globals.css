@@ -348,6 +348,19 @@ select[dir="ltr"] {
   min-width: 0;
 }
 
+.plan-preview-content {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.plan-preview-content > [data-plan-workspace] {
+  max-width: 96rem;
+  margin-inline: auto;
+}
+
 .three-scene-slot {
   position: relative;
   min-width: 0;
@@ -442,6 +455,10 @@ select[dir="ltr"] {
     inset-inline-start: max(0.75rem, env(safe-area-inset-left));
     z-index: 4;
     margin: 0;
+  }
+  .plan-preview-content {
+    width: 100%;
+    padding: 4.75rem 0.75rem max(0.75rem, env(safe-area-inset-bottom));
   }
   .three-workspace[dir="rtl"] .three-workspace-header { inset-inline-start: max(0.75rem, env(safe-area-inset-right)); }
   .three-workspace-introduction { display: none; }

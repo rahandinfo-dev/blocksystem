@@ -39,8 +39,7 @@ import { addWorkspaceNotification, getActiveProjectId, getWorkspacePreferences, 
 import { WorkspaceConsole } from "./workspace-console";
 import { ScenarioComparison } from "./scenario-comparison";
 import { BackupRecovery } from "./backup-recovery";
-import { EngineeringTakeoff } from "./engineering-takeoff";
-import { FloorPlanWorkspace } from "./floor-plan-workspace";
+import { FloorPlanPreview } from "./floor-plan-workspace";
 
 const errorMessageKeys: Record<CalculationErrorCode, string> = {
   "invalid-room": "errors.invalidRoom",
@@ -684,13 +683,12 @@ export function Calculator() {
         </form>
         <div className="space-y-6">
           <ResultsDashboard result={result} error={error} />
-          <WallPreview units={numericUnits} block={selectedBlock} data={data} />
+          <WallPreview units={numericUnits} block={selectedBlock} />
         </div>
       </div>
       <div className="print:hidden space-y-6">
         <CalculationBreakdown result={result} />
-        <EngineeringTakeoff data={data} />
-        <FloorPlanWorkspace data={data} onChange={setData} />
+        <FloorPlanPreview data={data} onChange={setData} />
         <BackupRecovery />
         <ScenarioComparison data={data} onChange={setData} />
         <SavedProjects

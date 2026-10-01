@@ -5,8 +5,7 @@ import { ArrowRight, Box, ChevronDown, Maximize2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppSelect } from "@/components/ui/app-select";
 import { languageDetails, languages, useI18n, type Language } from "@/lib/i18n";
-import type { BlockDefinition, CalculatorProjectData, NumericUnit } from "@/features/calculator/types";
-import { buildEngineeringTakeoff } from "@/features/calculator/lib/engineering-takeoff";
+import type { BlockDefinition, NumericUnit } from "@/features/calculator/types";
 import type { PreviewSelection } from "./room-three-scene";
 import { PreviewWorkspace } from "./preview-workspace";
 import { ComponentRecoveryBoundary } from "@/components/reliability/component-recovery-boundary";
@@ -21,7 +20,6 @@ const RoomThreeScene = dynamic(
 interface Props {
   units: NumericUnit[];
   block: BlockDefinition;
-  data?: CalculatorProjectData;
 }
 
 function PreviewLoading() {
@@ -33,7 +31,7 @@ function PreviewFailure({ retry }: { retry: () => void }) {
   return <div className="grid h-full place-items-center gap-3 p-4 text-center" role="alert"><p>{t("reliability.featureUnavailable")}</p><button type="button" className="min-h-11 rounded-lg border px-3 font-semibold" onClick={retry}>{t("reliability.reload3d")}</button></div>;
 }
 
-export function WallPreview({ units, block, data }: Props) {
+export function WallPreview({ units, block }: Props) {
   const { t, language, direction, setLanguage } = useI18n();
   const viable = units.filter(
     (unit) =>
@@ -74,7 +72,6 @@ export function WallPreview({ units, block, data }: Props) {
     () => viable.find((unit) => unit.id === activeId) ?? viable[0],
     [activeId, viable],
   );
-  const validationIds = useMemo(() => data ? buildEngineeringTakeoff(data).issues.flatMap((issue) => issue.severity === "INFO" || !issue.entityId ? [] : [issue.entityId]) : [], [data]);
   if (!active)
     return (
       <section
@@ -156,7 +153,7 @@ export function WallPreview({ units, block, data }: Props) {
           </header>
           <div className="three-workspace-content">
             <div className="three-scene-slot">
-              <ComponentRecoveryBoundary fallback={(retry) => <PreviewFailure retry={retry} />}><RoomThreeScene unit={active} block={block} selection={selection} onSelectionChange={setSelection} validationIds={validationIds} /></ComponentRecoveryBoundary>
+              <ComponentRecoveryBoundary fallback={(retry) => <PreviewFailure retry={retry} />}><RoomThreeScene unit={active} block={block} selection={selection} onSelectionChange={setSelection} /></ComponentRecoveryBoundary>
             </div>
             <aside className="three-details bg-slate-900 text-sm shadow-lg" data-open={detailsOpen}>
               <button className="three-details-toggle" type="button" aria-expanded={detailsOpen} aria-controls="three-details-content" onClick={() => setDetailsOpen((value) => !value)}>
@@ -228,7 +225,6 @@ export function WallPreview({ units, block, data }: Props) {
                 <h4 id="three-material-legend" className="font-bold">{t("three.materialLegend")}</h4>
                 <p className="mt-2 text-slate-200"><span className="me-2 inline-block size-3 rounded-sm bg-amber-300 align-middle" aria-hidden="true" />{t("three.material")}: {block.name} · <bdi dir="ltr">{block.thicknessCm} cm</bdi></p>
               </section>
-              {validationIds.includes(active.id) || (selection.type !== "wall" && validationIds.includes(selection.id)) ? <p className="mt-3 rounded bg-red-950/50 p-2 text-xs text-red-100" role="status">{t("three.validation")}: {t("three.invalid")}</p> : null}
               <hr className="my-5 border-slate-700" />
               <h4 className="font-bold">{t("preview.statistics")}</h4>
               <dl className="mt-3 space-y-2 text-slate-200">

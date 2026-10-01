@@ -1,22 +1,100 @@
 "use client";
-import { Download, Maximize2, Minus, Plus, Printer, Ruler, ScanLine } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+
+import { ArrowRight, Download, Maximize2, Minus, Plus, Printer, Ruler, ScanLine } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { buildFloorPlan, fitPlan, hitPlan, measure, planBounds, screenToWorld, viewBox, type PlanViewport } from "../lib/floor-plan";
 import type { CalculatorProjectData } from "../types";
 import { useI18n } from "@/lib/i18n";
+import { PreviewWorkspace } from "./preview-workspace";
 
 type Selection = { kind: string; id: string; hostId?: string } | null;
-export function FloorPlanWorkspace({ data, onChange }: { data: CalculatorProjectData; onChange: (next: CalculatorProjectData) => void }) {
-  const { t, direction, formatNumber } = useI18n(); const plan = useMemo(() => buildFloorPlan(data), [data]); const svgRef = useRef<SVGSVGElement>(null); const rootRef = useRef<HTMLDivElement>(null); const [aspect, setAspect] = useState(1.6); const [viewport, setViewport] = useState<PlanViewport>(() => fitPlan(plan)); const [tool, setTool] = useState<"select" | "measure">("select"); const [grid, setGrid] = useState(true); const [dimensions, setDimensions] = useState(true); const [selection, setSelection] = useState<Selection>(null); const [points, setPoints] = useState<Array<{ x: number; y: number }>>([]); const drag = useRef<{ x: number; y: number; centerX: number; centerY: number } | null>(null);
-  useEffect(() => { const element = rootRef.current; if (!element) return; const observer = new ResizeObserver(() => setAspect(Math.max(0.2, element.clientWidth / Math.max(1, element.clientHeight)))); observer.observe(element); return () => observer.disconnect(); }, []);
-  useEffect(() => { const timer = window.setTimeout(() => setViewport(fitPlan(plan, aspect)), 0); return () => window.clearTimeout(timer); }, [plan, aspect]);
-  const box = viewBox(viewport, aspect); const bounds = planBounds(plan); const selected = selection ? plan.find((item) => item.id === (selection.hostId ?? selection.id)) : undefined; const distance = points.length === 2 ? measure(points[0], points[1]) : undefined;
-  const eventPoint = (event: React.PointerEvent<SVGSVGElement>) => { const rect = event.currentTarget.getBoundingClientRect(); return screenToWorld(event.clientX, event.clientY, rect, viewport); };
+type Props = { data: CalculatorProjectData; onChange: (next: CalculatorProjectData) => void };
+
+export function FloorPlanPreview({ data, onChange }: Props) {
+  const { t, direction } = useI18n();
+  const [open, setOpen] = useState(false);
+  const close = useCallback(() => setOpen(false), []);
+
+  return (
+    <>
+      <section id="floor-plan-preview" data-plan-preview className="rounded-2xl border border-slate-200 bg-[var(--brand-navy)] p-6 text-[var(--brand-cream)] shadow-sm" dir={direction} aria-labelledby="floor-plan-preview-title">
+        <div className="flex flex-wrap items-center justify-between gap-5">
+          <div>
+            <div className="flex items-center gap-2"><ScanLine size={22} className="text-amber-300" /><h2 id="floor-plan-preview-title" className="text-xl font-bold">{t("plan.title")}</h2></div>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-200">{t("plan.previewDescription")}</p>
+          </div>
+          <button type="button" data-plan-preview-open onClick={() => setOpen(true)} className="inline-flex min-h-12 shrink-0 items-center gap-2 rounded-xl bg-amber-500 px-4 font-bold text-slate-950 hover:bg-amber-400">
+            <Maximize2 size={18} /> {t("plan.open")}
+          </button>
+        </div>
+      </section>
+      {open ? (
+        <PreviewWorkspace onClose={close} ariaLabel={t("plan.title")}>
+          <header className="three-workspace-header">
+            <div className="three-workspace-introduction"><h2 className="text-lg font-bold">{t("plan.title")}</h2><p className="text-sm text-slate-300">{t("plan.previewDescription")}</p></div>
+            <button type="button" data-preview-close aria-label={t("common.close")} onClick={close} className="three-close inline-flex min-h-11 items-center gap-2 rounded-lg bg-white px-3 font-bold text-slate-900">
+              <ArrowRight size={18} style={{ transform: direction === "ltr" ? "rotate(180deg)" : undefined }} /> {t("plan.back")}
+            </button>
+          </header>
+          <div className="plan-preview-content"><FloorPlanWorkspace data={data} onChange={onChange} /></div>
+        </PreviewWorkspace>
+      ) : null}
+    </>
+  );
+}
+
+/** The existing 2D engine, rendered only after the compact preview is opened. */
+export function FloorPlanWorkspace({ data, onChange }: Props) {
+  const { t, direction, formatNumber } = useI18n();
+  const plan = useMemo(() => buildFloorPlan(data), [data]);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [aspect, setAspect] = useState(1.6);
+  const [viewport, setViewport] = useState<PlanViewport>(() => fitPlan(plan));
+  const [tool, setTool] = useState<"select" | "measure">("select");
+  const [grid, setGrid] = useState(true);
+  const [dimensions, setDimensions] = useState(true);
+  const [selection, setSelection] = useState<Selection>(null);
+  const [points, setPoints] = useState<Array<{ x: number; y: number }>>([]);
+  const drag = useRef<{ x: number; y: number; centerX: number; centerY: number } | null>(null);
+
+  useEffect(() => {
+    const element = rootRef.current;
+    if (!element) return;
+    const observer = new ResizeObserver(() => setAspect(Math.max(0.2, element.clientWidth / Math.max(1, element.clientHeight))));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setViewport(fitPlan(plan, aspect)), 0);
+    return () => window.clearTimeout(timer);
+  }, [plan, aspect]);
+
+  const box = viewBox(viewport, aspect);
+  const bounds = planBounds(plan);
+  const selected = selection ? plan.find((item) => item.id === (selection.hostId ?? selection.id)) : undefined;
+  const distance = points.length === 2 ? measure(points[0], points[1]) : undefined;
+  const eventPoint = (event: React.PointerEvent<SVGSVGElement>) => screenToWorld(event.clientX, event.clientY, event.currentTarget.getBoundingClientRect(), viewport);
   const zoom = (factor: number) => setViewport((current) => ({ ...current, zoom: Math.min(20, Math.max(0.05, current.zoom * factor)) }));
-  const editLength = (value: string) => { if (!selected) return; if (data.mode === "rooms" && selected.kind === "room") onChange({ ...data, rooms: data.rooms.map((room) => room.id === selected.id ? { ...room, length: value } : room) }); else if (data.mode === "walls" && selected.kind === "wall") onChange({ ...data, walls: data.walls.map((wall) => wall.id === selected.id ? { ...wall, length: value } : wall) }); };
-  const exportSvg = () => { const escape = (value: string) => value.replace(/[&<>"']/g, (character) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&apos;" })[character] ?? character); const geometry = plan.map((item) => `<rect x="${item.x}" y="${item.y}" width="${item.width}" height="${item.height}" fill="#f8fafc" stroke="#0f2053" stroke-width="0.05"/><text x="${item.x + item.width / 2}" y="${item.y + item.height / 2}" text-anchor="middle" font-size="0.35">${escape(item.name)}</text>`).join(""); const content = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${bounds.minX - 1} ${bounds.minY - 1} ${Math.max(2, bounds.maxX - bounds.minX + 2)} ${Math.max(2, bounds.maxY - bounds.minY + 2)}">${geometry}</svg>`; const url = URL.createObjectURL(new Blob([content], { type: "image/svg+xml" })); const anchor = document.createElement("a"); anchor.href = url; anchor.download = "blocksystem-plan.svg"; anchor.click(); URL.revokeObjectURL(url); };
-  return <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" dir={direction} aria-labelledby="plan-title"><div className="flex flex-wrap items-center justify-between gap-3"><h2 id="plan-title" className="flex items-center gap-2 text-xl font-bold"><ScanLine size={21}/>{t("plan.title")}</h2><span className="text-xs text-slate-500">{t("plan.notToScale")}</span></div><div className="mt-4 flex flex-wrap gap-2" role="toolbar" aria-label={t("plan.title")}><button type="button" onClick={() => setTool("select")} aria-pressed={tool === "select"} className="min-h-11 rounded-lg border px-3 text-sm font-semibold">{t("plan.select")}</button><button type="button" onClick={() => { setTool("measure"); setPoints([]); }} aria-pressed={tool === "measure"} className="inline-flex min-h-11 items-center gap-1 rounded-lg border px-3 text-sm font-semibold"><Ruler size={16}/>{t("plan.measure")}</button><button type="button" onClick={() => setGrid((value) => !value)} aria-pressed={grid} className="min-h-11 rounded-lg border px-3 text-sm">{t("plan.grid")}</button><button type="button" onClick={() => setDimensions((value) => !value)} aria-pressed={dimensions} className="min-h-11 rounded-lg border px-3 text-sm">{t("plan.dimensions")}</button><button type="button" onClick={() => zoom(1.25)} className="grid min-h-11 min-w-11 place-items-center rounded-lg border" aria-label={t("plan.zoomIn")}><Plus size={17}/></button><button type="button" onClick={() => zoom(0.8)} className="grid min-h-11 min-w-11 place-items-center rounded-lg border" aria-label={t("plan.zoomOut")}><Minus size={17}/></button><button type="button" onClick={() => setViewport(fitPlan(plan, aspect))} className="min-h-11 rounded-lg border px-3 text-sm">{t("plan.fit")}</button><button type="button" onClick={() => { setViewport(fitPlan(plan, aspect)); setSelection(null); setPoints([]); }} className="min-h-11 rounded-lg border px-3 text-sm">{t("plan.reset")}</button><button type="button" onClick={exportSvg} className="inline-flex min-h-11 items-center gap-1 rounded-lg border px-3 text-sm"><Download size={16}/>{t("plan.export")}</button><button type="button" onClick={() => window.print()} className="inline-flex min-h-11 items-center gap-1 rounded-lg border px-3 text-sm"><Printer size={16}/>{t("plan.print")}</button><button type="button" onClick={() => void rootRef.current?.requestFullscreen?.()} className="grid min-h-11 min-w-11 place-items-center rounded-lg border" aria-label={t("plan.fullscreen")}><Maximize2 size={16}/></button></div>
-    <div ref={rootRef} className="mt-4 min-h-[22rem] overflow-hidden rounded-xl border bg-slate-50 touch-none sm:min-h-[30rem]"><svg ref={svgRef} viewBox={`${box.x} ${box.y} ${box.width} ${box.height}`} className="h-full min-h-[22rem] w-full sm:min-h-[30rem]" role="img" aria-label={t("plan.title")} onWheel={(event) => { event.preventDefault(); zoom(event.deltaY < 0 ? 1.12 : 0.89); }} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); drag.current = { x: event.clientX, y: event.clientY, centerX: viewport.centerX, centerY: viewport.centerY }; }} onPointerMove={(event) => { if (!drag.current) return; const rect = event.currentTarget.getBoundingClientRect(); const dx = ((event.clientX - drag.current.x) / rect.width) * box.width; const dy = ((event.clientY - drag.current.y) / rect.height) * box.height; if (Math.abs(dx) + Math.abs(dy) > 0.02) setViewport((current) => ({ ...current, centerX: drag.current!.centerX - dx, centerY: drag.current!.centerY - dy })); }} onPointerUp={(event) => { const start = drag.current; drag.current = null; if (!start || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 8) return; const point = eventPoint(event); if (tool === "measure") setPoints((current) => current.length === 2 ? [point] : [...current, point]); else setSelection(hitPlan(plan, point)); }}><defs>{grid ? <pattern id="plan-grid" width="1" height="1" patternUnits="userSpaceOnUse"><path d="M 1 0 L 0 0 0 1" fill="none" stroke="#cbd5e1" strokeWidth="0.02"/></pattern> : null}</defs>{grid ? <rect x={box.x} y={box.y} width={box.width} height={box.height} fill="url(#plan-grid)"/> : null}{plan.map((item) => <g key={item.id}><rect x={item.x} y={item.y} width={item.width} height={item.height} fill={selected?.id === item.id ? "#fde68a" : "#f8fafc"} stroke="#0f2053" strokeWidth="0.05"/><text x={item.x + item.width / 2} y={item.y + item.height / 2} textAnchor="middle" fontSize="0.32" direction="ltr">{item.name}</text>{dimensions ? <text x={item.x + item.width / 2} y={item.y - 0.18} textAnchor="middle" fontSize="0.22" direction="ltr">{formatNumber(item.width, { maximumFractionDigits: 2 })} m</text> : null}{item.openings.map((opening) => <rect key={opening.id} x={opening.x} y={opening.y - 0.08} width={opening.width} height="0.16" fill={opening.kind === "door" ? "#b45309" : "#0284c7"} stroke="#0f172a" strokeWidth="0.02"/>)}</g>)}{points.length === 2 ? <g><line x1={points[0].x} y1={points[0].y} x2={points[1].x} y2={points[1].y} stroke="#dc2626" strokeWidth="0.04"/><text x={(points[0].x + points[1].x)/2} y={(points[0].y + points[1].y)/2 - 0.12} textAnchor="middle" fontSize="0.24" direction="ltr">{formatNumber(distance ?? 0, { maximumFractionDigits: 3 })} m</text></g> : null}</svg>{!plan.length ? <p className="p-4 text-sm text-slate-600">{t("plan.noGeometry")}</p> : null}</div>
-    <aside className="mt-4 rounded-lg bg-slate-50 p-3" aria-live="polite"><h3 className="font-bold">{t("plan.properties")}</h3>{selected ? <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2"><p>{t(`plan.${selected.kind}`)} <bdi dir="ltr">{selected.id}</bdi></p>{selected.kind === "room" || selected.kind === "wall" ? <label>{t("common.length")}<input inputMode="decimal" className="form-control mt-1" dir="ltr" value={selected ? (data.mode === "rooms" ? data.rooms.find((room) => room.id === selected.id)?.length ?? "" : data.walls.find((wall) => wall.id === selected.id)?.length ?? "") : ""} onChange={(event) => editLength(event.target.value)}/></label> : null}</div> : <p className="mt-2 text-sm text-slate-600">{t("plan.selection")}</p>}{distance !== undefined ? <p className="mt-2 text-sm">{t("plan.distance")}: <bdi dir="ltr">{formatNumber(distance, { maximumFractionDigits: 3 })} m</bdi></p> : null}</aside>
+  const editLength = (value: string) => {
+    if (!selected) return;
+    if (data.mode === "rooms" && selected.kind === "room") onChange({ ...data, rooms: data.rooms.map((room) => room.id === selected.id ? { ...room, length: value } : room) });
+    else if (data.mode === "walls" && selected.kind === "wall") onChange({ ...data, walls: data.walls.map((wall) => wall.id === selected.id ? { ...wall, length: value } : wall) });
+  };
+  const exportSvg = () => {
+    const escape = (value: string) => value.replace(/[&<>"']/g, (character) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&apos;" })[character] ?? character);
+    const geometry = plan.map((item) => `<rect x="${item.x}" y="${item.y}" width="${item.width}" height="${item.height}" fill="#f8fafc" stroke="#0f2053" stroke-width="0.05"/><text x="${item.x + item.width / 2}" y="${item.y + item.height / 2}" text-anchor="middle" font-size="0.35">${escape(item.name)}</text>`).join("");
+    const content = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${bounds.minX - 1} ${bounds.minY - 1} ${Math.max(2, bounds.maxX - bounds.minX + 2)} ${Math.max(2, bounds.maxY - bounds.minY + 2)}">${geometry}</svg>`;
+    const url = URL.createObjectURL(new Blob([content], { type: "image/svg+xml" }));
+    const anchor = document.createElement("a"); anchor.href = url; anchor.download = "blocksystem-plan.svg"; anchor.click(); URL.revokeObjectURL(url);
+  };
+
+  return <section data-plan-workspace className="rounded-2xl border border-slate-200 bg-white p-4 text-slate-950 shadow-sm sm:p-6" dir={direction} aria-labelledby="plan-workspace-title">
+    <div className="flex flex-wrap items-center justify-between gap-3"><h2 id="plan-workspace-title" className="flex items-center gap-2 text-xl font-bold"><ScanLine size={21}/>{t("plan.title")}</h2><span className="text-xs text-slate-500">{t("plan.notToScale")}</span></div>
+    <div className="mt-4 flex flex-wrap gap-2" role="toolbar" aria-label={t("plan.title")}>
+      <button type="button" onClick={() => setTool("select")} aria-pressed={tool === "select"} className="min-h-11 rounded-lg border px-3 text-sm font-semibold">{t("plan.select")}</button><button type="button" onClick={() => { setTool("measure"); setPoints([]); }} aria-pressed={tool === "measure"} className="inline-flex min-h-11 items-center gap-1 rounded-lg border px-3 text-sm font-semibold"><Ruler size={16}/>{t("plan.measure")}</button><button type="button" onClick={() => setGrid((value) => !value)} aria-pressed={grid} className="min-h-11 rounded-lg border px-3 text-sm">{t("plan.grid")}</button><button type="button" onClick={() => setDimensions((value) => !value)} aria-pressed={dimensions} className="min-h-11 rounded-lg border px-3 text-sm">{t("plan.dimensions")}</button><button type="button" onClick={() => zoom(1.25)} className="grid min-h-11 min-w-11 place-items-center rounded-lg border" aria-label={t("plan.zoomIn")}><Plus size={17}/></button><button type="button" onClick={() => zoom(0.8)} className="grid min-h-11 min-w-11 place-items-center rounded-lg border" aria-label={t("plan.zoomOut")}><Minus size={17}/></button><button type="button" onClick={() => setViewport(fitPlan(plan, aspect))} className="min-h-11 rounded-lg border px-3 text-sm">{t("plan.fit")}</button><button type="button" onClick={() => { setViewport(fitPlan(plan, aspect)); setSelection(null); setPoints([]); }} className="min-h-11 rounded-lg border px-3 text-sm">{t("plan.reset")}</button><button type="button" onClick={exportSvg} className="inline-flex min-h-11 items-center gap-1 rounded-lg border px-3 text-sm"><Download size={16}/>{t("plan.export")}</button><button type="button" onClick={() => window.print()} className="inline-flex min-h-11 items-center gap-1 rounded-lg border px-3 text-sm"><Printer size={16}/>{t("plan.print")}</button><button type="button" onClick={() => void rootRef.current?.requestFullscreen?.()} className="grid min-h-11 min-w-11 place-items-center rounded-lg border" aria-label={t("plan.fullscreen")}><Maximize2 size={16}/></button>
+    </div>
+    <div ref={rootRef} className="mt-4 min-h-[22rem] overflow-hidden rounded-xl border bg-slate-50 touch-none sm:min-h-[30rem]"><svg data-plan-canvas ref={svgRef} viewBox={`${box.x} ${box.y} ${box.width} ${box.height}`} className="h-full min-h-[22rem] w-full sm:min-h-[30rem]" role="img" aria-label={t("plan.title")} onWheel={(event) => { event.preventDefault(); zoom(event.deltaY < 0 ? 1.12 : 0.89); }} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); drag.current = { x: event.clientX, y: event.clientY, centerX: viewport.centerX, centerY: viewport.centerY }; }} onPointerMove={(event) => { if (!drag.current) return; const rect = event.currentTarget.getBoundingClientRect(); const dx = ((event.clientX - drag.current.x) / rect.width) * box.width; const dy = ((event.clientY - drag.current.y) / rect.height) * box.height; if (Math.abs(dx) + Math.abs(dy) > 0.02) setViewport((current) => ({ ...current, centerX: drag.current!.centerX - dx, centerY: drag.current!.centerY - dy })); }} onPointerUp={(event) => { const start = drag.current; drag.current = null; if (!start || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 8) return; const point = eventPoint(event); if (tool === "measure") setPoints((current) => current.length === 2 ? [point] : [...current, point]); else setSelection(hitPlan(plan, point)); }}><defs>{grid ? <pattern id="plan-grid" width="1" height="1" patternUnits="userSpaceOnUse"><path d="M 1 0 L 0 0 0 1" fill="none" stroke="#cbd5e1" strokeWidth="0.02"/></pattern> : null}</defs>{grid ? <rect x={box.x} y={box.y} width={box.width} height={box.height} fill="url(#plan-grid)"/> : null}{plan.map((item) => <g key={item.id}><rect x={item.x} y={item.y} width={item.width} height={item.height} fill={selected?.id === item.id ? "#fde68a" : "#f8fafc"} stroke="#0f2053" strokeWidth="0.05"/><text x={item.x + item.width / 2} y={item.y + item.height / 2} textAnchor="middle" fontSize="0.32" direction="ltr">{item.name}</text>{dimensions ? <text x={item.x + item.width / 2} y={item.y - 0.18} textAnchor="middle" fontSize="0.22" direction="ltr">{formatNumber(item.width, { maximumFractionDigits: 2 })} m</text> : null}{item.openings.map((opening) => <rect key={opening.id} x={opening.x} y={opening.y - 0.08} width={opening.width} height="0.16" fill={opening.kind === "door" ? "#b45309" : "#0284c7"} stroke="#0f172a" strokeWidth="0.02"/>)}</g>)}{points.length === 2 ? <g><line x1={points[0].x} y1={points[0].y} x2={points[1].x} y2={points[1].y} stroke="#dc2626" strokeWidth="0.04"/><text x={(points[0].x + points[1].x)/2} y={(points[0].y + points[1].y)/2 - 0.12} textAnchor="middle" fontSize="0.24" direction="ltr">{formatNumber(distance ?? 0, { maximumFractionDigits: 3 })} m</text></g> : null}</svg>{!plan.length ? <p className="p-4 text-sm text-slate-600">{t("plan.noGeometry")}</p> : null}</div>
+    <aside className="mt-4 rounded-lg bg-slate-50 p-3" aria-live="polite"><h3 className="font-bold">{t("plan.properties")}</h3>{selected ? <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2"><p>{t(`plan.${selected.kind}`)} <bdi dir="ltr">{selected.id}</bdi></p>{selected.kind === "room" || selected.kind === "wall" ? <label>{t("common.length")}<input inputMode="decimal" className="form-control mt-1" dir="ltr" value={data.mode === "rooms" ? data.rooms.find((room) => room.id === selected.id)?.length ?? "" : data.walls.find((wall) => wall.id === selected.id)?.length ?? ""} onChange={(event) => editLength(event.target.value)}/></label> : null}</div> : <p className="mt-2 text-sm text-slate-600">{t("plan.selection")}</p>}{distance !== undefined ? <p className="mt-2 text-sm">{t("plan.distance")}: <bdi dir="ltr">{formatNumber(distance, { maximumFractionDigits: 3 })} m</bdi></p> : null}</aside>
   </section>;
 }

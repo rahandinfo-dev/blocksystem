@@ -5,9 +5,10 @@ import { createPortal } from "react-dom";
 import { useI18n } from "@/lib/i18n";
 
 /** One modal surface for the shared scene, outside every calculator layout. */
-export function PreviewWorkspace({ children, onClose }: {
+export function PreviewWorkspace({ children, onClose, ariaLabel }: {
   children: ReactNode;
   onClose: () => void;
+  ariaLabel?: string;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const { t, direction } = useI18n();
@@ -92,7 +93,7 @@ export function PreviewWorkspace({ children, onClose }: {
   }, [onClose]);
 
   return createPortal(
-    <div ref={rootRef} className="three-workspace" role="dialog" aria-modal="true" aria-label={t("preview.title")} dir={direction}>
+    <div ref={rootRef} className="three-workspace" role="dialog" aria-modal="true" aria-label={ariaLabel ?? t("preview.title")} dir={direction}>
       {children}
     </div>,
     document.body,
