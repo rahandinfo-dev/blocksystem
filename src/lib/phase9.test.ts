@@ -10,7 +10,7 @@ test("PWA cache policy never caches verification or server operations", () => {
     assert.equal(isCacheablePwaPath(path), false);
   }
   assert.equal(isCacheablePwaPath("/_next/static/chunks/app.js"), true);
-  assert.equal(isCacheablePwaPath("/icons/icon-512.svg"), true);
+  assert.equal(isCacheablePwaPath("/icon.png"), true);
   assert.equal(canRetryRequest("GET"), true);
   assert.equal(canRetryRequest("POST"), false);
 });
@@ -20,7 +20,7 @@ test("service worker keeps verification and API responses outside every cache", 
   assert.match(source, /path\.startsWith\("\/api\/"\).*path\.startsWith\("\/verify\/"\)/);
   assert.match(source, /if \(url\.origin !== self\.location\.origin \|\| sensitive\(url\.pathname\)\) return/);
   assert.doesNotMatch(source, /cache\.addAll\([^)]*verify/);
-  assert.match(source, /blocksystem-shell-v1\.0\.0/);
+  assert.match(source, /blocksystem-shell-v1\.0\.1/);
 });
 
 test("manifest, production-only registration, and 3D lazy boundary are present", async () => {

@@ -8,10 +8,9 @@ export function isCacheablePwaPath(pathname: string): boolean {
   return (
     pathname === "/" ||
     pathname === "/offline" ||
-    pathname === "/favicon.ico" ||
+    pathname === "/icon.png" ||
     pathname === "/manifest.webmanifest" ||
-    pathname.startsWith("/_next/static/") ||
-    pathname.startsWith("/icons/")
+    pathname.startsWith("/_next/static/")
   );
 }
 
