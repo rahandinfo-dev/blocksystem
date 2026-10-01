@@ -1,7 +1,8 @@
 import { auditEvent } from "@/lib/audit";
 import { sendAuthEmail, verificationEmailSubject } from "@/lib/auth-email";
 import { apiError, apiHeaders, log, registrationFailure, requestId } from "@/lib/observability";
-import { enforceRateLimit } from "@/lib/rate-limit";
+import { enforceSignupRateLimit } from "@/lib/rate-limit";
+import { normalizeEmail, validEmail } from "@/lib/identity";
 import { limitedJson, sameOrigin } from "@/lib/verification-auth";
 import { verificationStore } from "@/lib/verification-store";
 import { registerAccount, type RegistrationInput } from "@/lib/signup";
@@ -12,7 +13,16 @@ export async function POST(request: Request) {
     const body = await limitedJson(request) as Record<string, unknown>;
     if (!["displayName", "username", "email", "password", "confirmPassword"].every((key) => typeof body[key] === "string")) return Response.json({ error: { code: "VALIDATION_ERROR" } }, { status: 400, headers: apiHeaders(request) });
     const store = verificationStore();
-    if (!(await enforceRateLimit(store, request, "signup"))) return Response.json({ error: { code: "RATE_LIMITED" } }, { status: 429, headers: { ...apiHeaders(request), "Retry-After": "300" } });
+    const email = normalizeEmail(body.email as string);
+    const rate = await enforceSignupRateLimit(store, request, validEmail(email) ? email : undefined);
+    if (!rate.allowed) {
+      const id = requestId(request);
+      log("warn", "auth.registration_rate_limited", { category: rate.category ?? "SIGNUP_RATE_LIMIT", requestId: id });
+      return Response.json(
+        { error: { code: "RATE_LIMITED", requestId: id, retryAfterSeconds: rate.retryAfterSeconds } },
+        { status: 429, headers: { ...apiHeaders(request), "X-Request-ID": id, "Retry-After": String(rate.retryAfterSeconds) } },
+      );
+    }
     const result = await registerAccount(store, body as RegistrationInput, ({ to, token, expiresAt }) => sendAuthEmail({ to, subject: verificationEmailSubject, path: `/verify-email?token=${encodeURIComponent(token)}`, action: "verify your email address", expires: expiresAt, template: "verification" }));
     if (!result.ok) {
       const status = result.code === "EMAIL_TAKEN" || result.code === "USERNAME_TAKEN" ? 409 : result.code.startsWith("EMAIL_") ? 503 : 400;

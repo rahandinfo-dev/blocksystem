@@ -36,6 +36,15 @@ test("valid signup normalizes identity, sends verification and verifies the acco
   assert.ok((await getUserByUsername(data, "ENGINEER.ONE"))?.emailVerifiedAt);
 });
 
+test("signup accepts normal valid provider addresses and keeps a pending verification account unique", async () => {
+  const data = await store();
+  for (const [index, email] of ["person@gmail.com", "person@outlook.com", "person@icloud.com", "person@yahoo.com", "person@proton.me"].entries()) {
+    const result = await registerAccount(data, { ...validInput, username: `provider.${index}`, email }, async () => "sent");
+    assert.equal(result.ok, true);
+  }
+  assert.deepEqual(await registerAccount(data, { ...validInput, username: "provider.retry", email: "person@gmail.com" }, async () => "sent"), { ok: false, code: "EMAIL_TAKEN" });
+});
+
 test("signup rejects invalid passwords, mismatches and duplicate normalized identities", async () => {
   const data = await store();
   assert.deepEqual(await registerAccount(data, { ...validInput, password: "not-long-enough", confirmPassword: "not-long-enough" }, async () => "sent"), { ok: false, code: "PASSWORD_INVALID" });

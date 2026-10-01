@@ -73,3 +73,25 @@ export function requestFingerprint(request: Request) {
     `${request.headers.get("user-agent")?.slice(0, 120) ?? "unknown"}|${request.headers.get("accept-language")?.slice(0, 64) ?? ""}`;
   return createHash("sha256").update(source).digest("hex").slice(0, 32);
 }
+
+/**
+ * Returns the platform supplied public address when one is available.
+ *
+ * Vercel overwrites x-forwarded-for and also supplies the two Vercel aliases,
+ * so they are suitable for a network-wide abuse limit.  Do not fall back to
+ * user-agent/language here: that fallback groups unrelated people together.
+ */
+export function requestIpFingerprint(request: Request) {
+  const candidate = [
+    request.headers.get("x-vercel-forwarded-for"),
+    request.headers.get("x-real-ip"),
+    request.headers.get("x-forwarded-for"),
+  ].find((value) => value?.trim())?.split(",")[0]?.trim();
+  if (!candidate || candidate.length > 64) return undefined;
+  return createHash("sha256").update(candidate).digest("hex").slice(0, 32);
+}
+
+/** Hashes an already-normalized identifier before it is used as a KV key. */
+export function identifierFingerprint(identifier: string) {
+  return createHash("sha256").update(identifier).digest("hex").slice(0, 32);
+}

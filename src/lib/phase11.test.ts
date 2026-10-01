@@ -3,11 +3,11 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { auditEvent } from "./audit.ts";
+import { auditEvent, requestIpFingerprint } from "./audit.ts";
 import { authenticatedUser, authEnvironment, canAccessProject, createSession, createUser, getUserByEmail, grantProjectAccess, hasPermission, passwordMatches, updateUser } from "./auth.ts";
 import { permissions, roles } from "./auth-types.ts";
 import { phase11Messages } from "./phase11-messages.ts";
-import { enforceRateLimit } from "./rate-limit.ts";
+import { enforceRateLimit, enforceSignupRateLimit } from "./rate-limit.ts";
 import { FileVerificationStore } from "./verification-store.ts";
 
 const secret = "phase11-test-session-secret-at-least-thirty-two-characters";
@@ -60,6 +60,23 @@ test("login throttling and safe audit filtering do not retain secrets", async ()
   const event = auditEvent({ action: "auth.login.failure", entityType: "auth", result: "failure", context: { emailHash: "abc", password: "no", token: "no" } });
   assert.equal(event.context?.emailHash, "abc");
   assert.equal(Object.keys(event.context ?? {}).length, 1);
+});
+
+test("signup limits an address independently and uses Vercel's client address for network abuse protection", async () => {
+  const data = await store();
+  const request = new Request("https://blocksystem.test/api/auth/register", { headers: { "x-vercel-forwarded-for": "198.51.100.24", "x-forwarded-for": "203.0.113.9" } });
+  const proxyEquivalent = new Request("https://blocksystem.test/api/auth/register", { headers: { "x-real-ip": "198.51.100.24" } });
+  assert.equal(requestIpFingerprint(request), requestIpFingerprint(proxyEquivalent));
+
+  for (let index = 0; index < 5; index += 1)
+    assert.equal((await enforceSignupRateLimit(data, request, "person@gmail.com")).allowed, true);
+  assert.deepEqual(await enforceSignupRateLimit(data, request, "person@gmail.com"), { allowed: false, retryAfterSeconds: 3600, category: "SIGNUP_EMAIL_LIMIT" });
+  assert.equal((await enforceSignupRateLimit(data, request, "other@outlook.com")).allowed, true);
+
+  const networkData = await store();
+  for (let index = 0; index < 25; index += 1)
+    assert.equal((await enforceSignupRateLimit(networkData, request, `person${index}@example.test`)).allowed, true);
+  assert.deepEqual(await enforceSignupRateLimit(networkData, request, "overflow@example.test"), { allowed: false, retryAfterSeconds: 3600, category: "SIGNUP_NETWORK_LIMIT" });
 });
 
 test("auth environment refuses public or incomplete secrets and translations are complete", () => {
