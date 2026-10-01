@@ -25,3 +25,7 @@ export async function consumeChallenge(store: VerificationStore, token: string, 
     return challenge.purpose === purpose && typeof challenge.userId === "string" && Date.parse(challenge.expiresAt) > Date.now() ? challenge.userId : null;
   } catch { return null; }
 }
+
+export async function discardChallenge(store: VerificationStore, token: string, purpose: Purpose) {
+  await store.authDelete(key(purpose, digest(token)));
+}

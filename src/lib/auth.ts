@@ -2,6 +2,8 @@ import { createHmac, randomBytes, randomUUID, scrypt as nodeScrypt, timingSafeEq
 import { promisify } from "node:util";
 import type { VerificationStore } from "./verification-store.ts";
 import { permissions, roles, toSafeUser, type AuthSession, type Permission, type Role, type SafeUser, type User } from "./auth-types.ts";
+import { normalizeEmail, normalizeUsername, validEmail, validUsername } from "./identity.ts";
+import { passwordRequirements } from "./password-policy.ts";
 
 const scrypt = promisify(nodeScrypt) as (password: string, salt: string, keyLength: number, options: { N: number; r: number; p: number; maxmem: number }) => Promise<Buffer>;
 const userKey = (id: string) => `bs:auth:user:${id}`;
@@ -24,12 +26,8 @@ export function authEnvironment(env: NodeJS.ProcessEnv = process.env): AuthEnvir
   if (bootstrapPassword && bootstrapPassword.length < 12) throw new Error("Authentication bootstrap configuration is invalid");
   return { sessionSecret, bootstrapEmail, bootstrapPassword };
 }
-export function validEmail(value: string) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && value.length <= 254; }
-export function normalizeEmail(value: string) { return value.trim().toLowerCase(); }
-const reservedUsernames = new Set(["admin", "administrator", "root", "system", "support", "blocksystem"]);
-export function normalizeUsername(value: string) { return value.trim().toLowerCase(); }
-export function validUsername(value: string) { return /^[a-z0-9](?:[a-z0-9._-]{1,29})$/.test(value) && !reservedUsernames.has(value); }
-export function validPassword(value: string) { const classes = [/[a-z]/.test(value), /[A-Z]/.test(value), /\d/.test(value), /[^A-Za-z0-9]/.test(value)].filter(Boolean).length; return value.length >= 12 && value.length <= 1024 && (value.length >= 20 || classes >= 3); }
+export { normalizeEmail, normalizeUsername, validEmail, validUsername } from "./identity.ts";
+export function validPassword(value: string) { return passwordRequirements(value).valid; }
 export function hasPermission(role: Role, permission: Permission) { return permissions[role].includes(permission); }
 export function hasRole(role: Role, ...allowed: Role[]) { return allowed.includes(role); }
 export async function hashPassword(password: string) {
@@ -77,6 +75,15 @@ export async function createUser(store: VerificationStore, input: { email: strin
     throw error;
   }
   return toSafeUser(user);
+}
+export async function deleteUser(store: VerificationStore, id: string) {
+  const user = await getUserRecord(store, id);
+  if (!user) return false;
+  await store.authDelete(emailKey(user.email));
+  await store.authDelete(usernameKey(user.username));
+  await store.authDelete(userKey(user.id));
+  await store.authRemoveMember(userIndex, user.id);
+  return true;
 }
 export async function updateUser(store: VerificationStore, id: string, patch: { displayName?: string; role?: Role; status?: User["status"] }): Promise<SafeUser | null> {
   const user = await getUserRecord(store, id); if (!user) return null;
