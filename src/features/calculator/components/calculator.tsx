@@ -38,7 +38,6 @@ import { useI18n } from "@/lib/i18n";
 import { addWorkspaceNotification, getActiveProjectId, getWorkspacePreferences, persistProject, setActiveProjectId } from "@/lib/project-storage";
 import { WorkspaceConsole } from "./workspace-console";
 import { ScenarioComparison } from "./scenario-comparison";
-import { ProjectDocuments } from "./project-documents";
 import { BackupRecovery } from "./backup-recovery";
 import { EngineeringTakeoff } from "./engineering-takeoff";
 import { FloorPlanWorkspace } from "./floor-plan-workspace";
@@ -690,7 +689,6 @@ export function Calculator() {
       </div>
       <div className="print:hidden space-y-6">
         <CalculationBreakdown result={result} />
-        <ProjectDocuments data={data} projectId={activeProjectId} onSettings={(documentSettings)=>setData(current=>({...current,documentSettings}))} />
         <EngineeringTakeoff data={data} />
         <FloorPlanWorkspace data={data} onChange={setData} />
         <BackupRecovery />

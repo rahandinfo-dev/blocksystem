@@ -4,7 +4,7 @@
 // only after the user accepts the existing update prompt.
 const CACHE = "blocksystem-shell-v1.0.1";
 const SHELL = ["/", "/offline", "/manifest.webmanifest", "/icon.png"];
-const sensitive = (path) => path.startsWith("/api/") || path.startsWith("/verify/");
+const sensitive = (path) => path.startsWith("/api/");
 const cacheable = (path) => path === "/" || path === "/offline" || path === "/icon.png" || path === "/manifest.webmanifest" || path.startsWith("/_next/static/");
 self.addEventListener("install", (event) => { event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL))); });
 self.addEventListener("message", (event) => { if (event.data?.type === "SKIP_WAITING") self.skipWaiting(); });

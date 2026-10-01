@@ -41,11 +41,6 @@ function plain(value: unknown, seen = new Set<unknown>()): boolean {
       plain(item, seen),
   );
 }
-function cleanProject(project: SavedProject): SavedProject {
-  const copy = JSON.parse(JSON.stringify(project)) as SavedProject;
-  delete copy.data.identity;
-  return copy;
-}
 export function createWorkspaceBackup(
   input: WorkspaceBackup["data"],
 ): WorkspaceBackup {
@@ -55,7 +50,9 @@ export function createWorkspaceBackup(
     createdAt: new Date().toISOString(),
     applicationVersion: "1.0.0",
     data: {
-      projects: input.projects.map(cleanProject),
+      projects: input.projects.map((project) =>
+        JSON.parse(JSON.stringify(project)) as SavedProject,
+      ),
       favorites: [...new Set(input.favorites)]
         .filter((id) => typeof id === "string")
         .slice(0, 1000),
@@ -102,7 +99,6 @@ export function validateWorkspaceBackup(value: unknown): WorkspaceBackup {
     )
       throw new Error("Invalid project");
     ids.add(migrated.id);
-    if (migrated.data.identity) delete migrated.data.identity;
     return migrated;
   });
   return createWorkspaceBackup({

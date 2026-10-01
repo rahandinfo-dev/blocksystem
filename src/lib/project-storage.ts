@@ -78,14 +78,6 @@ function projectName(data: CalculatorProjectData) {
 function makeId(prefix: string) {
   return `${prefix}-${crypto.randomUUID()}`;
 }
-// Browser identities are legacy metadata only. Public identities are allocated by the server.
-function withIdentity(
-  data: CalculatorProjectData,
-  existing?: SavedProject,
-): CalculatorProjectData {
-  return { ...data, identity: existing?.data.identity ?? data.identity };
-}
-
 export function getSavedProjects(): SavedProject[] {
   return read<unknown[]>(storageKey, [])
     .map(migrateSavedProject)
@@ -277,7 +269,6 @@ export function persistProject(
   const existing = activeProjectId
     ? projects.find((project) => project.id === activeProjectId)
     : undefined;
-  data = withIdentity(data, existing);
   const now = new Date().toISOString();
   const changed =
     !existing || JSON.stringify(existing.data) !== JSON.stringify(data);
@@ -434,7 +425,6 @@ export function restoreWorkspaceBackup(raw: unknown): boolean {
 }
 
 export function duplicateProject(project: SavedProject): SavedProject | null {
-  // A copy must be registered independently and never inherit a public verification identity.
   const copy = clone(project.data);
   let sequence = 0;
   const nextId = (prefix: string) =>
@@ -503,7 +493,6 @@ export function duplicateProject(project: SavedProject): SavedProject | null {
         : undefined,
     };
   }
-  delete copy.identity;
   copy.metadata.projectName = `${project.name} (copy)`;
   return saveProject(copy);
 }

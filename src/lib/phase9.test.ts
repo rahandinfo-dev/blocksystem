@@ -4,8 +4,8 @@ import { readFile } from "node:fs/promises";
 import { canRetryRequest, isCacheablePwaPath, isSensitivePwaPath } from "./pwa-policy.ts";
 import { phase9Messages } from "./phase9-messages.ts";
 
-test("PWA cache policy never caches verification or server operations", () => {
-  for (const path of ["/api/verification/public/abc", "/api/project-documents", "/verify/public-token"]) {
+test("PWA cache policy never caches server operations", () => {
+  for (const path of ["/api/receipts", "/api/scenario-report"]) {
     assert.equal(isSensitivePwaPath(path), true);
     assert.equal(isCacheablePwaPath(path), false);
   }
@@ -15,11 +15,11 @@ test("PWA cache policy never caches verification or server operations", () => {
   assert.equal(canRetryRequest("POST"), false);
 });
 
-test("service worker keeps verification and API responses outside every cache", async () => {
+test("service worker keeps API responses outside every cache", async () => {
   const source = await readFile(new URL("../../public/sw.js", import.meta.url), "utf8");
-  assert.match(source, /path\.startsWith\("\/api\/"\).*path\.startsWith\("\/verify\/"\)/);
+  assert.match(source, /path\.startsWith\("\/api\/"\)/);
   assert.match(source, /if \(url\.origin !== self\.location\.origin \|\| sensitive\(url\.pathname\)\) return/);
-  assert.doesNotMatch(source, /cache\.addAll\([^)]*verify/);
+  assert.doesNotMatch(source, /cache\.addAll\([^)]*api/);
   assert.match(source, /blocksystem-shell-v1\.0\.1/);
 });
 

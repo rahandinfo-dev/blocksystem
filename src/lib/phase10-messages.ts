@@ -1,5 +1,7 @@
 import type { Language } from "./i18n";
-const en = { "reliability.featureUnavailable":"This feature is temporarily unavailable.", "reliability.retry":"Try again", "reliability.reload3d":"Reload 3D preview", "reliability.diagnostics":"Diagnostics", "reliability.health":"Service health", "reliability.version":"App version", "reliability.verification":"Verification", "reliability.online":"Connection", "reliability.serviceUnavailable":"The server is temporarily unavailable. Please try again." };
-const ku = { "reliability.featureUnavailable":"ئەم تایبەتمەندییە کاتیانە بەردەست نییە.", "reliability.retry":"دووبارە هەوڵبدە", "reliability.reload3d":"پێشبینینی 3D دووبارە بار بکە", "reliability.diagnostics":"دۆخزانین", "reliability.health":"تەندروستی خزمەتگوزاری", "reliability.version":"وەشانی ئەپ", "reliability.verification":"پشتڕاستکردنەوە", "reliability.online":"پەیوەندی", "reliability.serviceUnavailable":"سێرڤەر کاتیانە بەردەست نییە. تکایە دووبارە هەوڵبدە." };
-const ar = { "reliability.featureUnavailable":"هذه الميزة غير متاحة مؤقتاً.", "reliability.retry":"حاول مرة أخرى", "reliability.reload3d":"إعادة تحميل المعاينة ثلاثية الأبعاد", "reliability.diagnostics":"التشخيص", "reliability.health":"حالة الخدمة", "reliability.version":"إصدار التطبيق", "reliability.verification":"التحقق", "reliability.online":"الاتصال", "reliability.serviceUnavailable":"الخادم غير متاح مؤقتاً. يرجى المحاولة مرة أخرى." };
+
+const en = { "reliability.featureUnavailable": "This feature is temporarily unavailable.", "reliability.reload3d": "Reload 3D preview" };
+const ku = { "reliability.featureUnavailable": "ئەم تایبەتمەندییە کاتیانە بەردەست نییە.", "reliability.reload3d": "پێشبینینی 3D دووبارە بار بکە" };
+const ar = { "reliability.featureUnavailable": "هذه الميزة غير متاحة مؤقتاً.", "reliability.reload3d": "إعادة تحميل المعاينة ثلاثية الأبعاد" };
+
 export const phase10Messages: Record<Language, Record<keyof typeof en, string>> = { "en-GB": en, ku, ar };

@@ -1,6 +1,6 @@
-/** PWA caching policy: server data and public verification are always live. */
+/** PWA caching policy: server operations are always live. */
 export function isSensitivePwaPath(pathname: string): boolean {
-  return pathname.startsWith("/api/") || pathname.startsWith("/verify/");
+  return pathname.startsWith("/api/");
 }
 
 export function isCacheablePwaPath(pathname: string): boolean {

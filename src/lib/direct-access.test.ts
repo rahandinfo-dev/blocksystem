@@ -38,3 +38,23 @@ test("no account routes or account API endpoints remain", async () => {
   for (const file of removed)
     await assert.rejects(access(file, constants.F_OK));
 });
+
+test("document verification routes, APIs, and UI components are absent", async () => {
+  const removed = [
+    source("app", "verify", "[token]", "page.tsx"),
+    source("app", "api", "verification", "records", "route.ts"),
+    source("app", "api", "verification", "session", "route.ts"),
+    source("app", "api", "verification", "public", "[token]", "route.ts"),
+    source("app", "api", "project-documents", "route.ts"),
+    source("features", "calculator", "components", "project-documents.tsx"),
+    source("features", "calculator", "components", "project-qr.tsx"),
+  ];
+  for (const file of removed)
+    await assert.rejects(access(file, constants.F_OK));
+
+  const calculator = await readFile(
+    source("features", "calculator", "components", "calculator.tsx"),
+    "utf8",
+  );
+  assert.doesNotMatch(calculator, /ProjectDocuments|verification|certificate/i);
+});

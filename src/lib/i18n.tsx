@@ -14,7 +14,6 @@ import { workspaceMessages } from "@/lib/workspace-messages";
 import { phase3Messages } from "@/lib/phase3-messages";
 import { scenarioMessages } from "@/lib/scenario-messages";
 import { analyticsMessages } from "@/lib/analytics-messages";
-import { documentMessages } from "@/lib/document-messages";
 import { phase8Messages } from "@/lib/phase8-messages";
 import { phase9Messages } from "@/lib/phase9-messages";
 import { phase10Messages } from "@/lib/phase10-messages";
@@ -292,7 +291,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     language,
     direction: languageDetails[language].direction,
     setLanguage,
-    t: (key, values) => interpolate((documentMessages[language] as Record<string, string>)[key] ?? dictionaries[language][key] ?? en[key] ?? key, values),
+    t: (key, values) => interpolate(dictionaries[language][key] ?? en[key] ?? key, values),
     formatNumber: (number, options) => new Intl.NumberFormat(language, options).format(number),
     formatDate: (date, options) => new Intl.DateTimeFormat(language, options).format(new Date(date)),
   }), [language, setLanguage]);

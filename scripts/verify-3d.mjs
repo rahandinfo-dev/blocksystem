@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { chromium, webkit } from "playwright-core";
 
 const engine = process.env.BROWSER ?? "chromium";
-const output = join(tmpdir(), "blocksystem-3d-verification", engine);
+const output = join(tmpdir(), "blocksystem-3d-check", engine);
 const results = { engine, checks: [], consoleErrors: [], pageErrors: [], warnings: [], failedRequests: [] };
 await mkdir(output, { recursive: true });
 const browser = await (engine === "webkit" ? webkit.launch({ headless: true }) : chromium.launch({

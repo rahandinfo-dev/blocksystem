@@ -20,7 +20,6 @@ import { convertArea, convertLength, convertVolume } from "../../../lib/units.ts
 import { calculateScenario, createScenarioFromProject } from "./scenario-engine.ts";
 import { createDefaultProject } from "./project-state.ts";
 import { aggregateProjectAnalytics } from "./project-analytics.ts";
-import { buildProjectDocument } from "./project-document.ts";
 
 const standardBlock = { id: "20cm" as const, name: "بلۆکی ٢٠ سم", thicknessCm: 20, lengthCm: 40, heightCm: 20 };
 
@@ -50,7 +49,6 @@ test("calculates the documented room, door, window, and 5% waste example", () =>
   assert.equal(result.wasteBlocks, 33);
   assert.equal(result.recommendedBlocks, 674);
 });
-
 test("handles no openings and preset/custom waste values", () => {
   assert.equal(validResult(calculate({ wastePercentage: 0 })).recommendedBlocks, 700);
   assert.equal(validResult(calculate({ wastePercentage: 10 })).recommendedBlocks, 770);
@@ -380,12 +378,4 @@ test("aggregates saved projects through the authoritative engine without mixing 
   assert.equal(aggregateProjectAnalytics(projects, { status: "archived", query: "", range: "all" }).projects.length, 0);
   const incomplete = structuredClone(data); incomplete.metadata.projectName = "";
   assert.equal(aggregateProjectAnalytics([{ ...projects[0], data: incomplete }], { status: "all", query: "", range: "all" }).health["needs-information"], 1);
-});
-
-test("project document snapshot preserves authoritative quantities, waste and costs", () => {
-  const data = createDefaultProject(); data.metadata.projectName = "Document project"; data.mode = "walls"; data.settings.unitPrice = "1000";
-  data.walls = [{ id: "wall", name: "Wall", length: "6", height: "2.8", lengthUnit: "m", heightUnit: "m", doors: [], windows: [] }];
-  const expected = validResult(calculateScenario(data, createScenarioFromProject(data, "scenario", "Current")));
-  const document = buildProjectDocument(data, { kind: "quotation", reference: "QT-2026-001", issuedAt: "30/09/2026", terms: "Terms" });
-  assert.equal(document.result.requiredBlocks, expected.requiredBlocks); assert.equal(document.result.wasteBlocks, expected.wasteBlocks); assert.equal(document.result.recommendedBlocks, expected.recommendedBlocks); assert.equal(document.result.cost?.grandTotal, expected.cost?.grandTotal);
 });

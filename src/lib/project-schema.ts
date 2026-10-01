@@ -273,34 +273,6 @@ export function migrateSavedProject(value: unknown): SavedProject | null {
     },
     scenarioComparison: asScenarioComparison(data.scenarioComparison),
   };
-  if (
-    isRecord(data.identity) &&
-    typeof data.identity.publicReference === "string" &&
-    typeof data.identity.verificationToken === "string"
-  )
-    normalized.identity = {
-      publicReference: data.identity.publicReference,
-      verificationToken: data.identity.verificationToken,
-    };
-  if (
-    isRecord(data.documentSettings) &&
-    ["estimate", "quotation", "detailed", "scenarios"].includes(
-      asText(data.documentSettings.kind),
-    )
-  ) {
-    const options = data.documentSettings;
-    normalized.documentSettings = {
-      kind: options.kind as NonNullable<
-        CalculatorProjectData["documentSettings"]
-      >["kind"],
-      issuer: asText(options.issuer),
-      contact: asText(options.contact),
-      validUntil: asText(options.validUntil),
-      notes: asText(options.notes),
-      terms: asText(options.terms),
-      preparedBy: asText(options.preparedBy),
-    };
-  }
   const ids = new Set<string>();
   const collect = (id: string) => !ids.has(id) && ids.add(id);
   if (

@@ -1,7 +1,6 @@
 import { renderReceiptPdf } from "@/features/calculator/lib/receipt-pdf";
 import type { ReceiptData } from "@/features/calculator/lib/receipt-data";
-import { apiError, apiHeaders } from "@/lib/observability";
-import { safeServerError } from "@/lib/server-env";
+import { apiError, apiHeaders, log, requestId } from "@/lib/observability";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,7 +46,10 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
-    safeServerError(error, request);
+    log("error", "receipt.render_failed", {
+      error: error instanceof Error ? error.name : "UnknownError",
+      requestId: requestId(request),
+    });
     return apiError("INTERNAL_ERROR", 500, request);
   }
 }
