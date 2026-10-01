@@ -1,4 +1,4 @@
-import { limitedJson, sameOrigin } from "@/lib/verification-auth";
+import { authorized, limitedJson, sameOrigin } from "@/lib/verification-auth";
 import { verificationStore } from "@/lib/verification-store";
 import {
   issueRecord,
@@ -14,7 +14,6 @@ import { auditEvent, requestFingerprint } from "@/lib/audit";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { safeServerError } from "@/lib/server-env";
 import { apiError, apiHeaders } from "@/lib/observability";
-import { assignProjectToRequestUser, permits, permitsProject, requestUser } from "@/lib/request-auth";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
@@ -25,7 +24,7 @@ export async function GET(request: Request) {
     const projectId = new URL(request.url).searchParams.get("projectId") ?? "";
     if (!/^[A-Za-z0-9_-]{1,100}$/.test(projectId))
       return apiError("VALIDATION_ERROR", 400, request);
-    if (!(await permitsProject(store, request, projectId, "documents.read")))
+    if (!authorized(request))
       return apiError("FORBIDDEN", 403, request);
     const origin = verificationOrigin();
     const records = await store.list(projectId);
@@ -57,7 +56,7 @@ export async function POST(request: Request) {
     };
     if (typeof body.projectId !== "string")
       return apiError("VALIDATION_ERROR", 400, request);
-    if (!(await permitsProject(store, request, body.projectId, "documents.create")))
+    if (!authorized(request))
       return apiError("FORBIDDEN", 403, request);
     try {
       validateProject(body.data);
@@ -69,7 +68,6 @@ export async function POST(request: Request) {
         body.data,
         options,
       );
-      await assignProjectToRequestUser(store, request, body.projectId);
       await store.appendAudit(
         auditEvent({
           action: "verification.created",
@@ -98,9 +96,7 @@ export async function DELETE(request: Request) {
     if (!sameOrigin(request))
       return apiError("UNAUTHORIZED", 401, request);
     const store = verificationStore();
-    const user = await requestUser(store, request);
-    if (!user && !(await permits(store, request, "documents.revoke")))
-      return apiError("UNAUTHORIZED", 401, request);
+    if (!authorized(request)) return apiError("UNAUTHORIZED", 401, request);
     if (!(await enforceRateLimit(store, request, "revoke")))
       return apiError("RATE_LIMITED", 429, request, { "Retry-After": "60" });
     const body = (await limitedJson(request)) as { token?: unknown };
@@ -108,8 +104,6 @@ export async function DELETE(request: Request) {
       return apiError("VALIDATION_ERROR", 400, request);
     const existing = await store.get(body.token);
     if (!existing) return apiError("NOT_FOUND", 404, request);
-    if (!(await permitsProject(store, request, existing.projectId, "documents.revoke")))
-      return apiError("FORBIDDEN", 403, request);
     const record = await store.revoke(body.token);
     if (record)
       await store.appendAudit(

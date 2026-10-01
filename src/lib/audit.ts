@@ -10,25 +10,11 @@ export type AuditAction =
   | "project.deleted"
   | "project.created"
   | "project.updated"
-  | "auth.login.success"
-  | "auth.login.failure"
-  | "auth.logout"
-  | "auth.user.created"
-  | "auth.user.updated"
-  | "auth.user.disabled"
-  | "auth.permission.denied"
-  | "project.member.added"
-  | "project.member.removed"
-  | "project.member.role.changed"
-  | "project.owner.transferred"
-  | "project.comment.created"
-  | "project.assignment.changed"
-  | "project.conflict.detected";
 export type AuditEvent = {
   id: string;
   action: AuditAction;
   timestamp: string;
-  entityType: "project" | "document" | "verification" | "backup" | "admin" | "user" | "auth";
+  entityType: "project" | "document" | "verification" | "backup" | "admin";
   entityReference?: string;
   result: "success" | "failure";
   context?: Record<string, string | number | boolean>;

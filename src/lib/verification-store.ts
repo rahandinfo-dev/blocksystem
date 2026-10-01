@@ -8,17 +8,6 @@ import { redisRestEnvironment, verificationEnvironment } from "./server-env.ts";
 /** Only this adapter handles persistence. Production uses an external Redis REST service. */
 export interface VerificationStore {
   ping(): Promise<void>;
-  authGet(key: string): Promise<string | null>;
-  authSet(key: string, value: string): Promise<void>;
-  authTake(key: string, usedKey: string, seconds: number): Promise<{ value: string | null; used: boolean }>;
-  authSetIfAbsent(key: string, value: string): Promise<boolean>;
-  authCreateUser(input: { emailKey: string; usernameKey: string; userKey: string; usersKey: string; userId: string; value: string }): Promise<"created" | "email_taken" | "username_taken">;
-  authDeleteUser(input: { emailKey: string; usernameKey: string; userKey: string; usersKey: string; userId: string }): Promise<void>;
-  authCompareAndSet(key: string, expected: string, value: string): Promise<boolean>;
-  authDelete(key: string): Promise<void>;
-  authMembers(key: string): Promise<string[]>;
-  authAddMember(key: string, member: string): Promise<void>;
-  authRemoveMember(key: string, member: string): Promise<void>;
   next(prefix: string): Promise<number>;
   get(token: string): Promise<VerificationRecord | null>;
   list(projectId: string): Promise<VerificationRecord[]>;
@@ -55,30 +44,6 @@ export class RedisVerificationStore implements VerificationStore {
     const result = await this.command<string>("PING");
     if (result !== "PONG") throw new Error("Verification store unavailable");
   }
-  async authGet(key: string) { return this.command<string | null>("GET", key); }
-  async authSet(key: string, value: string) { await this.command<string>("SET", key, value); }
-  async authTake(key: string, usedKey: string, seconds: number) {
-    const result = await this.command<[number, string | null]>("EVAL", "local value=redis.call('GET',KEYS[1]); if value then redis.call('DEL',KEYS[1]); redis.call('SET',KEYS[2],'1','EX',ARGV[1]); return {1,value} end; if redis.call('EXISTS',KEYS[2])==1 then return {2,false} end; return {0,false}", 2, key, usedKey, seconds);
-    return { value: result[0] === 1 ? result[1] : null, used: result[0] === 2 };
-  }
-  async authSetIfAbsent(key: string, value: string) { return (await this.command<string | null>("SET", key, value, "NX")) === "OK"; }
-  async authCreateUser(input: { emailKey: string; usernameKey: string; userKey: string; usersKey: string; userId: string; value: string }) {
-    const result = await this.command<number>(
-      "EVAL",
-      "local emailOwner=redis.call('GET',KEYS[1]); if emailOwner then if redis.call('EXISTS',ARGV[4]..emailOwner)==0 then redis.call('DEL',KEYS[1]) else return 1 end end; local usernameOwner=redis.call('GET',KEYS[2]); if usernameOwner then if redis.call('EXISTS',ARGV[4]..usernameOwner)==0 then redis.call('DEL',KEYS[2]) else return 2 end end; redis.call('SET',KEYS[1],ARGV[1]); redis.call('SET',KEYS[2],ARGV[1]); redis.call('SET',KEYS[3],ARGV[2]); redis.call('SADD',KEYS[4],ARGV[1]); return 0",
-      4, input.emailKey, input.usernameKey, input.userKey, input.usersKey,
-      input.userId, input.value, input.userKey.slice(0, -input.userId.length),
-    );
-    return result === 0 ? "created" : result === 1 ? "email_taken" : "username_taken";
-  }
-  async authDeleteUser(input: { emailKey: string; usernameKey: string; userKey: string; usersKey: string; userId: string }) {
-    await this.command<number>("EVAL", "if redis.call('GET',KEYS[1])==ARGV[1] then redis.call('DEL',KEYS[1]) end; if redis.call('GET',KEYS[2])==ARGV[1] then redis.call('DEL',KEYS[2]) end; redis.call('DEL',KEYS[3]); redis.call('SREM',KEYS[4],ARGV[1]); return 1", 4, input.emailKey, input.usernameKey, input.userKey, input.usersKey, input.userId);
-  }
-  async authCompareAndSet(key: string, expected: string, value: string) { return (await this.command<number>("EVAL", "if redis.call('GET',KEYS[1])==ARGV[1] then redis.call('SET',KEYS[1],ARGV[2]); return 1 end return 0", 1, key, expected, value)) === 1; }
-  async authDelete(key: string) { await this.command<number>("DEL", key); }
-  async authMembers(key: string) { return this.command<string[]>("SMEMBERS", key); }
-  async authAddMember(key: string, member: string) { await this.command<number>("SADD", key, member); }
-  async authRemoveMember(key: string, member: string) { await this.command<number>("SREM", key, member); }
   next(prefix: string) {
     return this.command<number>("INCR", `bs:verify:sequence:${prefix}`);
   }
@@ -163,9 +128,6 @@ type LocalData = {
   records: VerificationRecord[];
   audit: AuditEvent[];
   rate: Record<string, { count: number; expiresAt: number }>;
-  auth?: Record<string, string>;
-  authSets?: Record<string, string[]>;
-  authExpiry?: Record<string, number>;
 };
 let pending: Promise<unknown> = Promise.resolve();
 /** Explicit local development/test adapter, never selected on Vercel or in production. */
@@ -190,16 +152,9 @@ export class FileVerificationStore implements VerificationStore {
           data.rate ??= {};
           data.sequences ??= {};
           data.records ??= [];
-          data.auth ??= {};
-          data.authSets ??= {};
-          data.authExpiry ??= {};
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-          data = { sequences: {}, records: [], audit: [], rate: {}, auth: {}, authSets: {}, authExpiry: {} };
-        }
-        const now = Date.now();
-        for (const [key, expiresAt] of Object.entries(data.authExpiry ?? {})) {
-          if (expiresAt <= now) { delete data.auth?.[key]; delete data.authExpiry?.[key]; }
+          data = { sequences: {}, records: [], audit: [], rate: {} };
         }
         const result = fn(data);
         if (write) {
@@ -215,56 +170,6 @@ export class FileVerificationStore implements VerificationStore {
   async ping() {
     await this.transaction(() => undefined);
   }
-  authGet(key: string) { return this.transaction((data) => data.auth?.[key] ?? null); }
-  authSet(key: string, value: string) { return this.transaction((data) => { (data.auth ??= {})[key] = value; }, true); }
-  authTake(key: string, usedKey: string, seconds: number) {
-    return this.transaction((data) => {
-      const auth = (data.auth ??= {});
-      const value = auth[key] ?? null;
-      if (!value) return { value: null, used: auth[usedKey] !== undefined };
-      delete auth[key];
-      auth[usedKey] = "1";
-      (data.authExpiry ??= {})[usedKey] = Date.now() + seconds * 1000;
-      return { value, used: false };
-    }, true);
-  }
-  authSetIfAbsent(key: string, value: string) { return this.transaction((data) => { const auth = (data.auth ??= {}); if (auth[key] !== undefined) return false; auth[key] = value; return true; }, true); }
-  authCreateUser(input: { emailKey: string; usernameKey: string; userKey: string; usersKey: string; userId: string; value: string }) {
-    return this.transaction((data) => {
-      const auth = (data.auth ??= {});
-      const prefix = input.userKey.slice(0, -input.userId.length);
-      const owner = (key: string) => auth[key];
-      const clearOrphan = (key: string) => {
-        const id = owner(key);
-        if (id && auth[`${prefix}${id}`] === undefined) delete auth[key];
-      };
-      clearOrphan(input.emailKey);
-      if (owner(input.emailKey)) return "email_taken" as const;
-      clearOrphan(input.usernameKey);
-      if (owner(input.usernameKey)) return "username_taken" as const;
-      auth[input.emailKey] = input.userId;
-      auth[input.usernameKey] = input.userId;
-      auth[input.userKey] = input.value;
-      const users = ((data.authSets ??= {})[input.usersKey] ??= []);
-      if (!users.includes(input.userId)) users.push(input.userId);
-      return "created" as const;
-    }, true);
-  }
-  authDeleteUser(input: { emailKey: string; usernameKey: string; userKey: string; usersKey: string; userId: string }) {
-    return this.transaction((data) => {
-      const auth = (data.auth ??= {});
-      if (auth[input.emailKey] === input.userId) delete auth[input.emailKey];
-      if (auth[input.usernameKey] === input.userId) delete auth[input.usernameKey];
-      delete auth[input.userKey];
-      const users = (data.authSets ??= {})[input.usersKey];
-      if (users) data.authSets![input.usersKey] = users.filter((id) => id !== input.userId);
-    }, true);
-  }
-  authCompareAndSet(key: string, expected: string, value: string) { return this.transaction((data) => { const auth = (data.auth ??= {}); if (auth[key] !== expected) return false; auth[key] = value; return true; }, true); }
-  authDelete(key: string) { return this.transaction((data) => { delete (data.auth ?? {})[key]; }, true); }
-  authMembers(key: string) { return this.transaction((data) => [...(data.authSets?.[key] ?? [])]); }
-  authAddMember(key: string, member: string) { return this.transaction((data) => { const set = ((data.authSets ??= {})[key] ??= []); if (!set.includes(member)) set.push(member); }, true); }
-  authRemoveMember(key: string, member: string) { return this.transaction((data) => { const set = (data.authSets ??= {})[key]; if (set) data.authSets![key] = set.filter((item) => item !== member); }, true); }
   next(prefix: string) {
     return this.transaction(
       (data) => (data.sequences[prefix] = (data.sequences[prefix] ?? 0) + 1),

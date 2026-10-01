@@ -28,7 +28,6 @@ const protectedNames = [
   "UPSTASH_REDIS_REST_TOKEN",
   "KV_REST_API_TOKEN",
   "VERIFICATION_ADMIN_SECRET",
-  "MAILERSEND_API_TOKEN",
 ] as const;
 function validOrigin(value: string, production: boolean) {
   let url: URL;
@@ -81,7 +80,7 @@ export function verificationEnvironment(
 }
 
 /**
- * Authentication and document storage need a writable Redis REST credential.
+ * Document verification storage needs a writable Redis REST credential.
  * `KV_REST_API_READ_ONLY_TOKEN`, `KV_URL`, and `REDIS_URL` are intentionally
  * not fallbacks: this adapter performs writes over HTTPS REST and must not
  * silently select a read-only credential or a TCP URL in serverless runtime.

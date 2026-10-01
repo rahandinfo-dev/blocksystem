@@ -62,7 +62,7 @@ Editable projects are stored in the current browser’s `localStorage`. They are
 
 The NRT font is committed at `src/app/fonts/NRT-Reg.ttf` and bundled for both web and multilingual PDF rendering. Use `.env.example` and the [verification deployment guide](docs/verification-deployment.md) to configure server-side persistence, administrator access and the trusted verification origin. Do not commit `.env` or `.env.local` files.
 
-Deploy with the standard Vercel Next.js preset after running the quality checks above. The calculator remains usable without verification configuration; issuance fails closed and public verification reports unavailable until its production database and server-only environment variables are configured.
+Deploy with the standard Vercel Next.js preset after running the quality checks above. The calculator opens directly and keeps projects on the current device; document issuance fails closed and public verification reports unavailable until its production database and server-only environment variables are configured.
 
 ## PWA and offline behaviour
 

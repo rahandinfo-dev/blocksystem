@@ -40,8 +40,6 @@ import { WorkspaceConsole } from "./workspace-console";
 import { ScenarioComparison } from "./scenario-comparison";
 import { ProjectDocuments } from "./project-documents";
 import { BackupRecovery } from "./backup-recovery";
-import { AuditHistory } from "./audit-history";
-import { ProjectCollaboration } from "./project-collaboration";
 import { EngineeringTakeoff } from "./engineering-takeoff";
 import { FloorPlanWorkspace } from "./floor-plan-workspace";
 
@@ -693,10 +691,8 @@ export function Calculator() {
       <div className="print:hidden space-y-6">
         <CalculationBreakdown result={result} />
         <ProjectDocuments data={data} projectId={activeProjectId} onSettings={(documentSettings)=>setData(current=>({...current,documentSettings}))} />
-        <ProjectCollaboration projectId={activeProjectId} />
         <EngineeringTakeoff data={data} />
         <FloorPlanWorkspace data={data} onChange={setData} />
-        <AuditHistory />
         <BackupRecovery />
         <ScenarioComparison data={data} onChange={setData} />
         <SavedProjects

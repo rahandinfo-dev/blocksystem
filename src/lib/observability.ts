@@ -10,10 +10,6 @@ export type ApiErrorCode =
   | "NETWORK_ERROR"
   | "DEPENDENCY_UNAVAILABLE"
   | "INTERNAL_ERROR"
-  | "EMAIL_VERIFICATION_INVALID"
-  | "EMAIL_VERIFICATION_EXPIRED"
-  | "EMAIL_VERIFICATION_ALREADY_USED"
-  | "EMAIL_VERIFICATION_ALREADY_VERIFIED";
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
 const sensitive = /authorization|cookie|password|secret|token|credential|snapshot|projectdata|backup|redis/i;
@@ -28,10 +24,6 @@ const messages: Record<ApiErrorCode, string> = {
   NETWORK_ERROR: "The network request did not complete.",
   DEPENDENCY_UNAVAILABLE: "This service is temporarily unavailable.",
   INTERNAL_ERROR: "This service is temporarily unavailable.",
-  EMAIL_VERIFICATION_INVALID: "This verification link is invalid.",
-  EMAIL_VERIFICATION_EXPIRED: "This verification link has expired.",
-  EMAIL_VERIFICATION_ALREADY_USED: "This verification link has already been used.",
-  EMAIL_VERIFICATION_ALREADY_VERIFIED: "This email address has already been verified.",
 };
 
 export function requestId(request?: Request): string {
@@ -54,11 +46,6 @@ export function log(level: LogLevel, event: string, context: Record<string, unkn
   if (level === "debug" && process.env.NODE_ENV === "production") return;
   const entry = JSON.stringify({ timestamp: new Date().toISOString(), level, event, ...redactLogValue(context) as object });
   console[level === "debug" ? "debug" : level](entry);
-}
-export function registrationFailure(request: Request, category: string, status = 503) {
-  const id = requestId(request);
-  log("error", "auth.registration_failed", { category, requestId: id });
-  return Response.json({ error: { code: category, requestId: id } }, { status, headers: { "Cache-Control": "no-store", "X-Request-ID": id } });
 }
 export function apiError(
   code: ApiErrorCode,

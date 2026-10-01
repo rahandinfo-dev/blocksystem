@@ -18,13 +18,9 @@ import { documentMessages } from "@/lib/document-messages";
 import { phase8Messages } from "@/lib/phase8-messages";
 import { phase9Messages } from "@/lib/phase9-messages";
 import { phase10Messages } from "@/lib/phase10-messages";
-import { phase11Messages } from "@/lib/phase11-messages";
-import { phase12Messages } from "@/lib/phase12-messages";
 import { phase13Messages } from "@/lib/phase13-messages";
 import { phase14Messages } from "@/lib/phase14-messages";
 import { phase15Messages } from "@/lib/phase15-messages";
-import { phase17Messages } from "@/lib/phase17-messages";
-import { phase171Messages } from "@/lib/phase171-messages";
 
 export const languages = ["ku", "ar", "en-GB"] as const;
 export type Language = (typeof languages)[number];
@@ -250,9 +246,9 @@ const ar: Messages = {
 };
 
 const dictionaries: Record<Language, Messages> = {
-  ku: { ...ku, ...previewMessages.ku, ...workspaceMessages.ku, ...phase3Messages.ku, ...scenarioMessages.ku, ...analyticsMessages.ku, ...phase8Messages.ku, ...phase9Messages.ku, ...phase10Messages.ku, ...phase11Messages.ku, ...phase12Messages.ku, ...phase13Messages.ku, ...phase14Messages.ku, ...phase15Messages.ku, ...phase17Messages.ku, ...phase171Messages.ku },
-  ar: { ...ar, ...previewMessages.ar, ...workspaceMessages.ar, ...phase3Messages.ar, ...scenarioMessages.ar, ...analyticsMessages.ar, ...phase8Messages.ar, ...phase9Messages.ar, ...phase10Messages.ar, ...phase11Messages.ar, ...phase12Messages.ar, ...phase13Messages.ar, ...phase14Messages.ar, ...phase15Messages.ar, ...phase17Messages.ar, ...phase171Messages.ar },
-  "en-GB": { ...en, ...previewMessages["en-GB"], ...workspaceMessages["en-GB"], ...phase3Messages["en-GB"], ...scenarioMessages["en-GB"], ...analyticsMessages["en-GB"], ...phase8Messages["en-GB"], ...phase9Messages["en-GB"], ...phase10Messages["en-GB"], ...phase11Messages["en-GB"], ...phase12Messages["en-GB"], ...phase13Messages["en-GB"], ...phase14Messages["en-GB"], ...phase15Messages["en-GB"], ...phase17Messages["en-GB"], ...phase171Messages["en-GB"] },
+  ku: { ...ku, ...previewMessages.ku, ...workspaceMessages.ku, ...phase3Messages.ku, ...scenarioMessages.ku, ...analyticsMessages.ku, ...phase8Messages.ku, ...phase9Messages.ku, ...phase10Messages.ku, ...phase13Messages.ku, ...phase14Messages.ku, ...phase15Messages.ku },
+  ar: { ...ar, ...previewMessages.ar, ...workspaceMessages.ar, ...phase3Messages.ar, ...scenarioMessages.ar, ...analyticsMessages.ar, ...phase8Messages.ar, ...phase9Messages.ar, ...phase10Messages.ar, ...phase13Messages.ar, ...phase14Messages.ar, ...phase15Messages.ar },
+  "en-GB": { ...en, ...previewMessages["en-GB"], ...workspaceMessages["en-GB"], ...phase3Messages["en-GB"], ...scenarioMessages["en-GB"], ...analyticsMessages["en-GB"], ...phase8Messages["en-GB"], ...phase9Messages["en-GB"], ...phase10Messages["en-GB"], ...phase13Messages["en-GB"], ...phase14Messages["en-GB"], ...phase15Messages["en-GB"] },
 };
 
 function interpolate(message: string, values?: MessageValues) {

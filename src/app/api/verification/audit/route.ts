@@ -2,13 +2,13 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { safeServerError } from "@/lib/server-env";
 import { verificationStore } from "@/lib/verification-store";
 import { apiError, apiHeaders } from "@/lib/observability";
-import { permits } from "@/lib/request-auth";
+import { authorized } from "@/lib/verification-auth";
 
 export const runtime = "nodejs";
 export async function GET(request: Request) {
   try {
     const store = verificationStore();
-    if (!(await permits(store, request, "audit.read")))
+    if (!authorized(request))
       return apiError("FORBIDDEN", 403, request);
     if (!(await enforceRateLimit(store, request, "admin")))
       return apiError("RATE_LIMITED", 429, request, { "Retry-After": "60" });

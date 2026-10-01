@@ -217,11 +217,6 @@ select[dir="ltr"] {
 
 .form-control:hover { border-color: color-mix(in srgb, var(--brand-navy) 58%, var(--brand-border)); }
 
-.auth-field-invalid { border-color: #dc2626 !important; box-shadow: 0 0 0 1px #dc2626; }
-.auth-field-valid { border-color: #16a34a !important; }
-.auth-field-error, .auth-field-success, .auth-requirement, .auth-requirement-met { display: flex; align-items: center; gap: 0.35rem; font-size: 0.875rem; }
-.auth-field-error, .auth-requirement { color: #b91c1c; }
-.auth-field-success, .auth-requirement-met { color: #15803d; }
 
 .form-control:focus,
 .form-control:focus-visible {

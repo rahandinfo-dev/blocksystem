@@ -1,5 +1,5 @@
 import { renderProjectDocumentPdf } from "@/features/calculator/lib/project-document-pdf";
-import { limitedJson, sameOrigin } from "@/lib/verification-auth";
+import { authorized, limitedJson, sameOrigin } from "@/lib/verification-auth";
 import { verificationStore } from "@/lib/verification-store";
 import {
   validToken,
@@ -10,7 +10,6 @@ import { auditEvent, requestFingerprint } from "@/lib/audit";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { safeServerError } from "@/lib/server-env";
 import { apiError, apiHeaders } from "@/lib/observability";
-import { permitsProject } from "@/lib/request-auth";
 export const runtime = "nodejs";
 export async function POST(request: Request) {
   try {
@@ -32,7 +31,7 @@ export async function POST(request: Request) {
     const record = await store.get(body.token);
     if (!record?.snapshot)
       return apiError("NOT_FOUND", 404, request);
-    if (!(await permitsProject(store, request, record.projectId, "documents.read")))
+    if (!authorized(request))
       return apiError("FORBIDDEN", 403, request);
     const pdf = await renderProjectDocumentPdf(
       record.snapshot,

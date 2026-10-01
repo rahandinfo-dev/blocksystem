@@ -95,9 +95,6 @@ function writeProjects(projects: SavedProject[]) {
   return write(storageKey, projects);
 }
 export function replaceSavedProjects(projects: SavedProject[]) { return writeProjects(projects.map(clone)); }
-function notifyServer(action: "upsert" | "delete", project?: SavedProject, id?: string) {
-  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("blocksystem:server-project", { detail: { action, project, id: id ?? project?.id } }));
-}
 export function getProjectVersions(projectId: string): ProjectVersion[] {
   return (
     read<Record<string, ProjectVersion[]>>(versionsKey, {})[projectId] ?? []
@@ -314,7 +311,6 @@ export function persistProject(
     changed || !existing ? addVersion(project.id, data, kind) : undefined;
   if (changed || !existing)
     addActivity(existing ? "saved" : "created", project, kind);
-  if (changed || !existing) notifyServer("upsert", project);
   return {
     ok: true,
     project,
@@ -529,7 +525,7 @@ export function renameSavedProject(
       : project,
   );
   if (!writeProjects(projects)) return null;
-  const saved = projects.find((project) => project.id === id); if (saved) notifyServer("upsert", saved); return projects;
+  return projects;
 }
 export function setProjectStatus(
   id: string,
@@ -548,7 +544,7 @@ export function setProjectStatus(
       : project,
   );
   if (!writeProjects(projects)) return null;
-  const saved = projects.find((project) => project.id === id); if (saved) notifyServer("upsert", saved); return projects;
+  return projects;
 }
 export function deleteSavedProject(id: string): SavedProject[] | null {
   const target = getSavedProjects().find((project) => project.id === id);
@@ -556,7 +552,6 @@ export function deleteSavedProject(id: string): SavedProject[] | null {
   saveRecovery(target.data);
   const projects = getSavedProjects().filter((project) => project.id !== id);
   if (!writeProjects(projects)) return null;
-  notifyServer("delete", target, id);
   const versions = read<Record<string, ProjectVersion[]>>(versionsKey, {});
   delete versions[id];
   write(versionsKey, versions);
