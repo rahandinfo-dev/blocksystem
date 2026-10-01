@@ -28,6 +28,7 @@ const protectedNames = [
   "UPSTASH_REDIS_REST_TOKEN",
   "KV_REST_API_TOKEN",
   "VERIFICATION_ADMIN_SECRET",
+  "MAILERSEND_API_TOKEN",
 ] as const;
 function validOrigin(value: string, production: boolean) {
   let url: URL;

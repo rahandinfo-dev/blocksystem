@@ -7,6 +7,7 @@ export const ratePolicy = {
   document: [30, 60],
   login: [8, 300],
   "password-reset": [5, 3600],
+  "verification-resend": [3, 3600],
   collaboration: [60, 60],
   comment: [20, 60],
   memberSearch: [30, 60],

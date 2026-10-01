@@ -9,10 +9,10 @@ import { useI18n } from "@/lib/i18n";
 
 type Field = "displayName" | "username" | "email" | "password" | "confirmPassword";
 type Form = Record<Field, string>;
-type ServerCode = "DISPLAY_NAME_INVALID" | "USERNAME_INVALID" | "EMAIL_INVALID" | "PASSWORD_MISMATCH" | "PASSWORD_INVALID" | "EMAIL_TAKEN" | "USERNAME_TAKEN" | "EMAIL_NOT_CONFIGURED" | "EMAIL_ORIGIN_INVALID" | "EMAIL_SENDER_REJECTED" | "EMAIL_RECIPIENT_NOT_ALLOWED" | "EMAIL_DELIVERY_UNAVAILABLE" | "REGISTRATION_STORAGE_UNAVAILABLE" | "RATE_LIMITED" | "VALIDATION_ERROR";
+type ServerCode = "DISPLAY_NAME_INVALID" | "USERNAME_INVALID" | "EMAIL_INVALID" | "PASSWORD_MISMATCH" | "PASSWORD_INVALID" | "EMAIL_TAKEN" | "USERNAME_TAKEN" | "EMAIL_NOT_CONFIGURED" | "EMAIL_ORIGIN_INVALID" | "EMAIL_SENDER_REJECTED" | "EMAIL_PROVIDER_RESTRICTED" | "EMAIL_INVALID_RECIPIENT" | "EMAIL_PROVIDER_RATE_LIMITED" | "EMAIL_DELIVERY_UNAVAILABLE" | "REGISTRATION_STORAGE_UNAVAILABLE" | "RATE_LIMITED" | "VALIDATION_ERROR";
 
 const serverMessages: Record<ServerCode, string> = {
-  DISPLAY_NAME_INVALID: "auth.displayNameInvalid", USERNAME_INVALID: "auth.usernameInvalid", EMAIL_INVALID: "auth.emailInvalid", PASSWORD_MISMATCH: "auth.passwordMatch", PASSWORD_INVALID: "auth.passwordInvalid", EMAIL_TAKEN: "auth.emailTaken", USERNAME_TAKEN: "auth.usernameTaken", EMAIL_NOT_CONFIGURED: "auth.emailNotConfigured", EMAIL_ORIGIN_INVALID: "auth.emailOriginInvalid", EMAIL_SENDER_REJECTED: "auth.emailSenderRejected", EMAIL_RECIPIENT_NOT_ALLOWED: "auth.emailRecipientNotAllowed", EMAIL_DELIVERY_UNAVAILABLE: "auth.emailUnavailable", REGISTRATION_STORAGE_UNAVAILABLE: "auth.registrationStorageUnavailable", RATE_LIMITED: "auth.rateLimited", VALIDATION_ERROR: "auth.fixForm",
+  DISPLAY_NAME_INVALID: "auth.displayNameInvalid", USERNAME_INVALID: "auth.usernameInvalid", EMAIL_INVALID: "auth.emailInvalid", PASSWORD_MISMATCH: "auth.passwordMatch", PASSWORD_INVALID: "auth.passwordInvalid", EMAIL_TAKEN: "auth.emailTaken", USERNAME_TAKEN: "auth.usernameTaken", EMAIL_NOT_CONFIGURED: "auth.emailNotConfigured", EMAIL_ORIGIN_INVALID: "auth.emailOriginInvalid", EMAIL_SENDER_REJECTED: "auth.emailSenderRejected", EMAIL_PROVIDER_RESTRICTED: "auth.emailProviderRestricted", EMAIL_INVALID_RECIPIENT: "auth.emailInvalidRecipient", EMAIL_PROVIDER_RATE_LIMITED: "auth.emailProviderRateLimited", EMAIL_DELIVERY_UNAVAILABLE: "auth.emailUnavailable", REGISTRATION_STORAGE_UNAVAILABLE: "auth.registrationStorageUnavailable", RATE_LIMITED: "auth.rateLimited", VALIDATION_ERROR: "auth.fixForm",
 };
 const strengthStyle = {
   weak: { label: "auth.weak", width: "25%", color: "#dc2626" },
@@ -27,6 +27,7 @@ export function SignUpForm() {
   const [touched, setTouched] = useState<Partial<Record<Field, boolean>>>({});
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
   const requirements = passwordRequirements(form.password);
   const currentStrength = passwordStrength(form.password);
@@ -60,8 +61,24 @@ export function SignUpForm() {
         setMessage({ text: t(code && code in serverMessages ? serverMessages[code] : "auth.signupUnavailable"), error: true });
         return;
       }
+      setRegisteredEmail(payload.email);
       setMessage({ text: t("auth.accountCreated"), error: false });
     } catch { setMessage({ text: t("auth.signupUnavailable"), error: true }); }
+    finally { setBusy(false); }
+  };
+  const resend = async () => {
+    if (!registeredEmail || busy) return;
+    setBusy(true); setMessage(null);
+    try {
+      const response = await fetch("/api/auth/resend-verification", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: registeredEmail }) });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null) as { error?: { code?: ServerCode } } | null;
+        const code = body?.error?.code;
+        setMessage({ text: t(code && code in serverMessages ? serverMessages[code] : "auth.emailUnavailable"), error: true });
+        return;
+      }
+      setMessage({ text: t("auth.verificationResent"), error: false });
+    } catch { setMessage({ text: t("auth.emailUnavailable"), error: true }); }
     finally { setBusy(false); }
   };
   const requirementsList: Array<[keyof typeof requirements, string]> = [
@@ -81,6 +98,7 @@ export function SignUpForm() {
     <label className="grid gap-1 text-sm font-semibold">{t("auth.confirmPassword")}<input className={fieldClass("confirmPassword")} type={show ? "text" : "password"} autoComplete="new-password" minLength={passwordPolicy.minLength} maxLength={passwordPolicy.maxLength} value={form.confirmPassword} onChange={set("confirmPassword")} onBlur={markTouched("confirmPassword")} aria-invalid={Boolean(touched.confirmPassword && errors.confirmPassword)} aria-describedby="signup-confirm-password-status" required /></label>
     {form.confirmPassword ? <p id="signup-confirm-password-status" className={passwordsMatch ? "auth-field-success" : "auth-field-error"} role="status">{passwordsMatch ? <><Check size={15} aria-hidden />{t("auth.passwordsMatch")}</> : <><X size={15} aria-hidden />{t("auth.passwordMatch")}</>}</p> : null}
     {message ? <p role={message.error ? "alert" : "status"} className={message.error ? "auth-field-error" : "auth-field-success"}>{message.text}</p> : null}
+    {registeredEmail ? <button type="button" className="min-h-11 rounded-lg border border-[var(--brand-navy)] px-4 font-bold text-[var(--brand-navy)] disabled:cursor-not-allowed disabled:opacity-60" disabled={busy} onClick={() => void resend()}>{t("auth.resendVerification")}</button> : null}
     <button className="min-h-11 rounded-lg bg-[var(--brand-navy)] px-4 font-bold text-[var(--brand-cream)] disabled:cursor-not-allowed disabled:opacity-60" disabled={busy || Boolean(errors.confirmPassword)} aria-busy={busy}>{t("auth.createAccount")}</button>
   </form><Link className="mt-5 inline-block text-sm underline" href="/login">{t("auth.signIn")}</Link></section></main>;
 }

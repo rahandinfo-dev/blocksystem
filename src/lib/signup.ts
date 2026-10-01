@@ -23,22 +23,26 @@ export type RegistrationFailure =
   | "EMAIL_NOT_CONFIGURED"
   | "EMAIL_ORIGIN_INVALID"
   | "EMAIL_SENDER_REJECTED"
-  | "EMAIL_RECIPIENT_NOT_ALLOWED"
+  | "EMAIL_PROVIDER_RESTRICTED"
+  | "EMAIL_INVALID_RECIPIENT"
+  | "EMAIL_PROVIDER_RATE_LIMITED"
   | "EMAIL_DELIVERY_UNAVAILABLE";
 export type RegistrationResult = { ok: true; userId: string } | { ok: false; code: RegistrationFailure };
 export type VerificationEmailSender = (input: { to: string; token: string; expiresAt: string }) => Promise<AuthEmailDelivery>;
 
-function emailFailure(delivery: AuthEmailDelivery): RegistrationFailure {
+export function emailDeliveryFailure(delivery: AuthEmailDelivery): RegistrationFailure {
   switch (delivery) {
     case "not_configured": return "EMAIL_NOT_CONFIGURED";
     case "origin_invalid": return "EMAIL_ORIGIN_INVALID";
     case "sender_rejected": return "EMAIL_SENDER_REJECTED";
-    case "recipient_not_allowed": return "EMAIL_RECIPIENT_NOT_ALLOWED";
+    case "sandbox_restricted": return "EMAIL_PROVIDER_RESTRICTED";
+    case "invalid_recipient": return "EMAIL_INVALID_RECIPIENT";
+    case "rate_limited": return "EMAIL_PROVIDER_RATE_LIMITED";
     default: return "EMAIL_DELIVERY_UNAVAILABLE";
   }
 }
 
-/** Creates an unverified account only when its verification message was accepted by Resend. */
+/** Creates an unverified account only when MailerSend accepts its verification message. */
 export async function registerAccount(store: VerificationStore, input: RegistrationInput, sendVerificationEmail: VerificationEmailSender): Promise<RegistrationResult> {
   const displayName = input.displayName.trim();
   const username = normalizeUsername(input.username);
@@ -58,7 +62,7 @@ export async function registerAccount(store: VerificationStore, input: Registrat
     if (delivery !== "sent") {
       await discardChallenge(store, challenge.token, "verify-email");
       await deleteUser(store, user.id);
-      return { ok: false, code: emailFailure(delivery) };
+      return { ok: false, code: emailDeliveryFailure(delivery) };
     }
     return { ok: true, userId: user.id };
   } catch (error) {

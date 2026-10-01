@@ -31,9 +31,9 @@ export async function POST(request: Request) {
       return Response.json({ error: { code: result.code, requestId: id } }, { status, headers: { "Cache-Control": "no-store", "X-Request-ID": id } });
     }
     try {
-      await store.appendAudit(auditEvent({ action: "auth.user.created", entityType: "user", entityReference: result.userId, result: "success", context: { emailDelivery: "sent" } }));
+      await store.appendAudit(auditEvent({ action: "auth.user.created", entityType: "user", entityReference: result.userId, result: "success", context: { emailDelivery: "provider_accepted" } }));
     } catch { log("warn", "auth.registration_audit_failed", { category: "AUDIT_WRITE_UNAVAILABLE", requestId: requestId(request) }); }
-    return Response.json({ accepted: true, delivery: "sent" }, { status: 201, headers: apiHeaders(request) });
+    return Response.json({ accepted: true }, { status: 201, headers: apiHeaders(request) });
   } catch (error) {
     if (error instanceof SyntaxError || (error instanceof Error && error.message === "Invalid input")) return apiError("VALIDATION_ERROR", 400, request);
     return registrationFailure(request, "REGISTRATION_STORAGE_UNAVAILABLE");

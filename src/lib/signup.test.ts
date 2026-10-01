@@ -3,7 +3,7 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { consumeChallenge } from "./auth-challenges.ts";
+import { consumeChallenge, createChallenge } from "./auth-challenges.ts";
 import { getUserByEmail, getUserByUsername, verifyUserEmail } from "./auth.ts";
 import { passwordRequirements, passwordStrength } from "./password-policy.ts";
 import { registerAccount } from "./signup.ts";
@@ -62,18 +62,33 @@ test("signup rolls back an unverified account when email delivery is unavailable
   assert.equal((await registerAccount(data, validInput, async () => "sent")).ok, true);
 });
 
-test("signup reports safe Resend delivery categories and rolls each account back", async () => {
+test("signup reports safe MailerSend delivery categories and rolls each account back", async () => {
   const outcomes = [
     ["not_configured", "EMAIL_NOT_CONFIGURED"],
     ["origin_invalid", "EMAIL_ORIGIN_INVALID"],
     ["sender_rejected", "EMAIL_SENDER_REJECTED"],
-    ["recipient_not_allowed", "EMAIL_RECIPIENT_NOT_ALLOWED"],
+    ["sandbox_restricted", "EMAIL_PROVIDER_RESTRICTED"],
+    ["invalid_recipient", "EMAIL_INVALID_RECIPIENT"],
+    ["rate_limited", "EMAIL_PROVIDER_RATE_LIMITED"],
   ] as const;
   for (const [delivery, code] of outcomes) {
     const data = await store();
     assert.deepEqual(await registerAccount(data, validInput, async () => delivery), { ok: false, code });
     assert.equal(await getUserByEmail(data, validInput.email), null);
   }
+});
+
+test("verification and reset challenges each remain one-time", async () => {
+  const data = await store();
+  let token = "";
+  const signup = await registerAccount(data, validInput, async (email) => { token = email.token; return "sent"; });
+  assert.equal(signup.ok, true);
+  const verification = token;
+  assert.equal((await consumeChallenge(data, verification, "verify-email")).status, "valid");
+  assert.equal((await consumeChallenge(data, verification, "verify-email")).status, "used");
+  const reset = await createChallenge(data, signup.userId, "reset-password");
+  assert.equal((await consumeChallenge(data, reset.token, "reset-password")).status, "valid");
+  assert.equal((await consumeChallenge(data, reset.token, "reset-password")).status, "used");
 });
 
 test("signup safely repairs an orphaned identity index left by an interrupted legacy write", async () => {

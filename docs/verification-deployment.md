@@ -27,10 +27,11 @@ production variables and redeploy:
 - `AUTH_BOOTSTRAP_SUPER_ADMIN_EMAIL` and `AUTH_BOOTSTRAP_SUPER_ADMIN_PASSWORD`: a
   one-time initial super-administrator bootstrap. Use a unique email and a password of
   at least 12 characters, sign in once, then remove the password variable and redeploy.
-- `RESEND_API_KEY` and `AUTH_EMAIL_FROM`: server-only Resend API credential and a
-  verified sender address used for account verification and password-reset emails.
-  Set both in Vercel and redeploy. Email delivery stays disabled rather than simulated
-  when either value is absent.
+- `MAILERSEND_API_TOKEN` and `AUTH_EMAIL_FROM`: server-only MailerSend API credential
+  and a sender address verified in MailerSend, used for account verification and
+  password-reset emails. Set both in Vercel and redeploy. Email delivery stays disabled
+  rather than simulated when either value is absent. The sender display name is always
+  `RekApps`.
 
 `KV_REST_API_READ_ONLY_TOKEN` is deliberately never selected for this application:
 registration needs Redis writes. `KV_URL` and `REDIS_URL` are TCP connection strings
@@ -38,10 +39,17 @@ and are likewise not used by this serverless HTTPS REST adapter. Configure one c
 write-capable pair—either `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` or
 `KV_REST_API_URL`/`KV_REST_API_TOKEN`—and do not mix pairs.
 
-If `AUTH_EMAIL_FROM` is Resend's `onboarding@resend.dev` test sender, Resend may
-restrict delivery to permitted test recipients. The signup API reports this as the
-safe `EMAIL_RECIPIENT_NOT_ALLOWED` code and rolls the attempted account back; use a
-verified sending domain for normal production signups.
+MailerSend's Email API accepts sends asynchronously; acceptance is not treated as an
+inbox-delivery guarantee. In the current MailerSend Sandbox account, recipient and
+request limits can reject a request. The app reports this as the safe
+`EMAIL_PROVIDER_RESTRICTED` or `EMAIL_PROVIDER_RATE_LIMITED` code, does not create a
+signup account when verification is not accepted, and does not claim that a reset
+email was delivered. Configure and verify the sender domain in MailerSend before
+enabling normal production signups.
+
+After MailerSend has been verified in production, `RESEND_API_KEY` (and any other
+`RESEND_*` variables) can be removed from Vercel. Do not remove `AUTH_EMAIL_FROM`:
+it is now the verified MailerSend sender address, not a Resend credential.
 
 Use a durable database with backups and no automatic expiry/eviction of verification
 records. Do not share its credentials with the browser or prefix them `NEXT_PUBLIC_`.
