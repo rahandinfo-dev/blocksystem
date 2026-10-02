@@ -19,7 +19,6 @@ import { formatMoney, formatMoneyInput } from "../../../lib/currency.ts";
 import { convertArea, convertLength, convertVolume } from "../../../lib/units.ts";
 import { calculateScenario, createScenarioFromProject } from "./scenario-engine.ts";
 import { createDefaultProject } from "./project-state.ts";
-import { aggregateProjectAnalytics } from "./project-analytics.ts";
 
 const standardBlock = { id: "20cm" as const, name: "بلۆکی ٢٠ سم", thicknessCm: 20, lengthCm: 40, heightCm: 20 };
 
@@ -54,7 +53,6 @@ test("handles no openings and preset/custom waste values", () => {
   assert.equal(validResult(calculate({ wastePercentage: 10 })).recommendedBlocks, 770);
   assert.equal(validResult(calculate({ wastePercentage: 7.5 })).recommendedBlocks, 753);
 });
-
 test("aggregates multiple rooms and calculates wall mode", () => {
   const rooms = validResult(calculate({ units: [
     { id: "room-1", name: "١", kind: "room", length: 2, width: 2, height: 2, doors: [], windows: [] },
@@ -65,7 +63,6 @@ test("aggregates multiple rooms and calculates wall mode", () => {
   const wall = validResult(calculate({ mode: "walls", units: [{ id: "wall-1", name: "دیوار", kind: "wall", length: 6, height: 2.8, doors: [], windows: [] }] }));
   assert.equal(Number(wall.grossWallArea.toFixed(2)), 16.8);
 });
-
 test("uses custom block face dimensions and rejects invalid conditions", () => {
   const custom = validResult(calculate({ block: { id: "custom", name: "تایبەت", thicknessCm: 15, lengthCm: 50, heightCm: 20 }, wastePercentage: 0 }));
   assert.equal(custom.blockFaceArea, 0.1);
@@ -363,19 +360,4 @@ test("scenario engine independently compares block, waste, cost, canonical geome
   assert.equal(validResult(calculateScenario(data, first)).recommendedBlocks, validResult(calculateScenario({ ...data, walls: [{ ...data.walls[0], length: "12" }] }, first)).recommendedBlocks);
   const usd = { ...first, id: "usd", currency: "USD" as const };
   assert.notEqual(validResult(calculateScenario(data, usd)).cost?.currency, validResult(calculateScenario(data, first)).cost?.currency);
-});
-
-test("aggregates saved projects through the authoritative engine without mixing material or currencies", () => {
-  const empty = aggregateProjectAnalytics([], { status: "all", query: "", range: "all" }, new Date("2026-09-30"));
-  assert.equal(empty.projects.length, 0); assert.equal(empty.netArea, 0);
-  const data = createDefaultProject(); data.metadata.projectName = "Active"; data.metadata.status = "active"; data.mode = "walls";
-  data.walls = [{ id: "wall", name: "Wall", length: "6", height: "2.8", lengthUnit: "m", heightUnit: "m", doors: [{ id: "door", name: "", width: "0.9", height: "2.1", quantity: "1", widthUnit: "m", heightUnit: "m", wallId: "wall", horizontalPosition: "0", horizontalPositionUnit: "m", sillHeight: "0", sillHeightUnit: "m" }], windows: [] }]; data.settings.unitPrice = "1000";
-  const second = structuredClone(data); second.metadata.projectName = "Completed"; second.metadata.status = "completed"; second.settings.selectedBlockId = "10cm"; second.settings.currency = "USD"; second.settings.unitPrice = "2";
-  const projects = [{ version: 5 as const, id: "a", name: "Active", savedAt: "2026-09-29T00:00:00.000Z", data }, { version: 5 as const, id: "b", name: "Completed", savedAt: "2026-09-28T00:00:00.000Z", data: second }];
-  const summary = aggregateProjectAnalytics(projects, { status: "all", query: "", range: "all" }, new Date("2026-09-30"));
-  assert.equal(summary.projects.length, 2); assert.equal(summary.statusCounts.active, 1); assert.equal(summary.statusCounts.completed, 1);
-  assert.equal(summary.materials.length, 2); assert.equal(summary.costs.length, 2); assert.ok(summary.netArea > 0); assert.ok(summary.materials.every((material) => material.waste > 0));
-  assert.equal(aggregateProjectAnalytics(projects, { status: "archived", query: "", range: "all" }).projects.length, 0);
-  const incomplete = structuredClone(data); incomplete.metadata.projectName = "";
-  assert.equal(aggregateProjectAnalytics([{ ...projects[0], data: incomplete }], { status: "all", query: "", range: "all" }).health["needs-information"], 1);
 });

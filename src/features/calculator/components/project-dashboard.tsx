@@ -1,37 +1,144 @@
 "use client";
 
-import { FolderOpen, Plus, Search, Star } from "lucide-react";
+import { Copy, FolderOpen, MoreHorizontal, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { AppSelect } from "@/components/ui/app-select";
-import { aggregateProjectAnalytics, type DashboardFilters } from "@/features/calculator/lib/project-analytics";
 import type { SavedProject } from "@/features/calculator/types";
-import { formatMoney } from "@/lib/currency";
 import { useI18n } from "@/lib/i18n";
-import { getFavorites, getSavedProjects, getWorkspaceActivity, subscribeToSavedProjects } from "@/lib/project-storage";
+import { deleteSavedProject, duplicateProject, getSavedProjects, renameSavedProject, subscribeToSavedProjects } from "@/lib/project-storage";
 
-const initialFilters: DashboardFilters = { status: "all", query: "", range: "all" };
-const healthKey = { complete: "analytics.complete", "needs-information": "analytics.needsInformation", "invalid-measurement": "analytics.invalidMeasurement" } as const;
+function roomCount(project: SavedProject) {
+  return project.data.mode === "rooms" ? project.data.rooms.length : 0;
+}
 
 export function ProjectDashboard() {
-  const { t, formatNumber, formatDate } = useI18n();
-  const [projects, setProjects] = useState<SavedProject[]>([]); const [favorites, setFavorites] = useState<string[]>([]); const [activities, setActivities] = useState<ReturnType<typeof getWorkspaceActivity>>([]); const [filters, setFilters] = useState(initialFilters);
-  const refresh = () => { setProjects(getSavedProjects()); setFavorites(getFavorites()); setActivities(getWorkspaceActivity()); };
-  useEffect(() => { const timer = window.setTimeout(refresh, 0); const unsubscribe = subscribeToSavedProjects(refresh); return () => { window.clearTimeout(timer); unsubscribe(); }; }, []);
-  const analytics = useMemo(() => aggregateProjectAnalytics(projects, filters), [filters, projects]);
-  const totalBlocks = analytics.materials.reduce((total, material) => total + material.final, 0);
-  const open = (project: SavedProject) => window.dispatchEvent(new CustomEvent("blocksystem:open-project", { detail: { project } }));
-  const status = (["draft", "active", "completed", "archived"] as const);
-  const cards = [["analytics.totalProjects", analytics.projects.length], ["analytics.activeProjects", analytics.statusCounts.active], ["analytics.completedProjects", analytics.statusCounts.completed], ["analytics.netArea", `${formatNumber(analytics.netArea, { maximumFractionDigits: 2 })} m²`], ["analytics.blocks", formatNumber(totalBlocks)], ["analytics.scenarios", formatNumber(analytics.scenarios)]] as const;
-  return <section className="print:hidden mb-8 rounded-2xl border border-[#0F2053]/15 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="project-dashboard-title">
-    <div className="flex flex-wrap items-start justify-between gap-4"><div><h2 id="project-dashboard-title" className="text-2xl font-bold text-[#0F2053]">{t("analytics.title")}</h2><p className="mt-1 max-w-2xl text-sm text-slate-600">{t("analytics.description")}</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => window.dispatchEvent(new CustomEvent("blocksystem:new-project"))} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#0F2053] px-3 text-sm font-bold text-[#EDE6CC]"><Plus size={18}/>{t("analytics.newProject")}</button><button type="button" onClick={() => window.dispatchEvent(new CustomEvent("blocksystem:workspace-search"))} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 px-3 text-sm font-bold"><Search size={18}/>{t("analytics.searchWorkspace")}</button></div></div>
-    <fieldset className="mt-5 grid gap-2 sm:grid-cols-3" aria-label={t("analytics.filters")}><legend className="sr-only">{t("analytics.filters")}</legend><label className="text-xs font-bold text-slate-700">{t("analytics.status")}<AppSelect value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value as DashboardFilters["status"] }))} className="mt-1 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm"><option value="all">{t("analytics.all")}</option>{status.map((value) => <option key={value} value={value}>{t(`analytics.${value}`)}</option>)}</AppSelect></label><label className="text-xs font-bold text-slate-700">{t("analytics.updated")}<AppSelect value={filters.range} onChange={(event) => setFilters((current) => ({ ...current, range: event.target.value as DashboardFilters["range"] }))} className="mt-1 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm"><option value="all">{t("analytics.all")}</option><option value="week">{t("analytics.thisWeek")}</option><option value="month">{t("analytics.thisMonth")}</option><option value="year">{t("analytics.thisYear")}</option></AppSelect></label><label className="text-xs font-bold text-slate-700">{t("analytics.search")}<input value={filters.query} onChange={(event) => setFilters((current) => ({ ...current, query: event.target.value }))} className="mt-1 h-11 w-full rounded-lg border border-slate-300 px-3 text-sm" /></label></fieldset>
-    <div className="mt-5 grid gap-3 grid-cols-2 lg:grid-cols-6">{cards.map(([label, value]) => <div key={label} className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-3"><p className="text-xs font-semibold text-slate-600">{t(label)}</p><p className="mt-1 truncate text-xl font-bold tabular-nums text-[#0F2053]">{value}</p></div>)}</div>
-    {!analytics.projects.length ? <div className="mt-5 rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">{t("analytics.noProjects")}</div> : <div className="mt-6 grid gap-5 xl:grid-cols-2">
-      <section className="rounded-xl border border-slate-200 p-4" aria-labelledby="analytics-status"><h3 id="analytics-status" className="font-bold text-[#0F2053]">{t("analytics.status")}</h3><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">{status.map((value) => <button key={value} type="button" onClick={() => setFilters((current) => ({ ...current, status: value }))} className="rounded-lg bg-slate-50 p-3 text-start"><span className="block text-xs text-slate-600">{t(`analytics.${value}`)}</span><strong className="text-lg tabular-nums">{analytics.statusCounts[value]}</strong></button>)}</div><h3 className="mt-5 font-bold text-[#0F2053]">{t("analytics.health")}</h3><div className="mt-2 flex flex-wrap gap-2">{(Object.keys(analytics.health) as Array<keyof typeof analytics.health>).map((value) => <span key={value} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold">{t(healthKey[value])}: {analytics.health[value]}</span>)}</div></section>
-      <section className="rounded-xl border border-slate-200 p-4" aria-labelledby="analytics-area"><h3 id="analytics-area" className="font-bold text-[#0F2053]">{t("analytics.area")}</h3><dl className="mt-3 grid grid-cols-3 gap-2 text-sm">{[["analytics.gross",analytics.grossArea],["analytics.openings",analytics.openingArea],["analytics.netArea",analytics.netArea]].map(([label,value]) => <div key={label as string} className="rounded-lg bg-slate-50 p-3"><dt className="text-xs text-slate-600">{t(label as string)}</dt><dd className="mt-1 font-bold tabular-nums">{formatNumber(value as number,{maximumFractionDigits:2})} m²</dd></div>)}</dl><p className="mt-3 text-xs text-slate-500">{t("analytics.rooms")}: {analytics.rooms} · {t("analytics.walls")}: {analytics.walls}</p></section>
-      <section className="rounded-xl border border-slate-200 p-4" aria-labelledby="analytics-materials"><h3 id="analytics-materials" className="font-bold text-[#0F2053]">{t("analytics.materials")}</h3><div className="mt-3 space-y-2">{analytics.materials.map((material) => <div key={material.label} className="rounded-lg bg-slate-50 p-3 text-sm"><strong>{material.label}</strong><div className="mt-1 grid grid-cols-3 gap-2 text-xs tabular-nums"><span>{t("analytics.base")}: {formatNumber(material.base)}</span><span>{t("analytics.waste")}: {formatNumber(material.waste)}</span><span>{t("analytics.final")}: {formatNumber(material.final)}</span></div></div>)}</div></section>
-      <section className="rounded-xl border border-slate-200 p-4" aria-labelledby="analytics-cost"><h3 id="analytics-cost" className="font-bold text-[#0F2053]">{t("analytics.costBreakdown")}</h3>{analytics.costs.length ? <div className="mt-3 space-y-2">{analytics.costs.map((cost) => <div key={cost.currency} className="rounded-lg bg-slate-50 p-3 text-sm"><strong>{formatMoney(cost.total,cost.currency)}</strong><div className="mt-1 grid grid-cols-2 gap-1 text-xs text-slate-600"><span>{t("scenario.material")}: {formatMoney(cost.material + cost.waste,cost.currency)}</span><span>{t("scenario.labour")}: {formatMoney(cost.labour,cost.currency)}</span><span>{t("scenario.transport")}: {formatMoney(cost.transport,cost.currency)}</span><span>{t("scenario.additional")}: {formatMoney(cost.additional,cost.currency)}</span></div></div>)}</div> : <p className="mt-3 text-sm text-slate-600">{t("analytics.noCosts")}</p>}</section>
-      <section className="rounded-xl border border-slate-200 p-4" aria-labelledby="analytics-recent"><h3 id="analytics-recent" className="font-bold text-[#0F2053]">{t("analytics.recentProjects")}</h3><div className="mt-3 space-y-2">{[...analytics.projects].sort((a,b) => new Date(b.project.savedAt).getTime()-new Date(a.project.savedAt).getTime()).slice(0,5).map((entry) => <div key={entry.project.id} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 p-3"><div className="min-w-0"><strong className="block truncate text-sm">{entry.project.name}</strong><span className="text-xs text-slate-600">{entry.project.data.metadata.clientName || t("analytics.client")} · {formatDate(entry.project.savedAt,{dateStyle:"medium"})} · {t(healthKey[entry.health])}</span></div><button type="button" onClick={() => open(entry.project)} className="inline-flex min-h-10 shrink-0 items-center gap-1 rounded-md border border-slate-300 px-2 text-xs font-bold"><FolderOpen size={15}/>{t("analytics.open")}</button></div>)}</div></section>
-      <section className="rounded-xl border border-slate-200 p-4" aria-labelledby="analytics-favorites"><h3 id="analytics-favorites" className="font-bold text-[#0F2053]">{t("analytics.favorites")}</h3>{analytics.projects.filter((entry) => favorites.includes(entry.project.id)).length ? <div className="mt-3 space-y-2">{analytics.projects.filter((entry) => favorites.includes(entry.project.id)).slice(0,5).map((entry) => <button key={entry.project.id} type="button" onClick={() => open(entry.project)} className="flex min-h-10 w-full items-center gap-2 rounded-lg bg-slate-50 p-3 text-start text-sm font-semibold"><Star size={16} className="text-amber-600" fill="currentColor"/>{entry.project.name}</button>)}</div> : <p className="mt-3 text-sm text-slate-600">{t("analytics.noFavorites")}</p>}<h3 className="mt-5 font-bold text-[#0F2053]">{t("analytics.activity")}</h3>{activities.length ? <div className="mt-2 space-y-2">{activities.slice(0,4).map((activity) => <p key={activity.id} className="text-sm"><strong>{activity.projectName}</strong><span className="block text-xs text-slate-600">{formatDate(activity.createdAt,{dateStyle:"short",timeStyle:"short"})}</span></p>)}</div> : <p className="mt-2 text-sm text-slate-600">{t("workspace.noNotifications")}</p>}</section>
-    </div>}</section>;
+  const { t, formatDate } = useI18n();
+  const [projects, setProjects] = useState<SavedProject[]>([]);
+  const [query, setQuery] = useState("");
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [message, setMessage] = useState("");
+
+  const refresh = () => setProjects(getSavedProjects());
+
+  useEffect(() => {
+    const timer = window.setTimeout(refresh, 0);
+    const unsubscribe = subscribeToSavedProjects(refresh);
+    return () => {
+      window.clearTimeout(timer);
+      unsubscribe();
+    };
+  }, []);
+
+  const visibleProjects = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase();
+    return projects
+      .filter((project) => !normalizedQuery || project.name.toLocaleLowerCase().includes(normalizedQuery))
+      .sort((left, right) => new Date(right.savedAt).getTime() - new Date(left.savedAt).getTime());
+  }, [projects, query]);
+
+  const openProject = (project: SavedProject) => {
+    window.dispatchEvent(new CustomEvent("blocksystem:open-project", { detail: { project } }));
+  };
+
+  const renameProject = (project: SavedProject) => {
+    const name = window.prompt(t("projects.renamePrompt"), project.name)?.trim();
+    if (!name) return;
+    if (!renameSavedProject(project.id, name)) setMessage(t("projects.saveFailed"));
+    setOpenMenuId(null);
+    refresh();
+  };
+
+  const duplicateSavedProject = (project: SavedProject) => {
+    if (!duplicateProject(project)) setMessage(t("projects.saveFailed"));
+    setOpenMenuId(null);
+    refresh();
+  };
+
+  const removeProject = (project: SavedProject) => {
+    if (!window.confirm(t("projects.confirmDelete"))) return;
+    if (!deleteSavedProject(project.id)) setMessage(t("projects.saveFailed"));
+    setOpenMenuId(null);
+    refresh();
+  };
+
+  const createProject = () => window.dispatchEvent(new CustomEvent("blocksystem:new-project"));
+
+  return (
+    <section className="print:hidden mb-8" aria-labelledby="project-dashboard-title">
+      <div className="flex flex-col gap-4 border-b border-[#0F2053]/15 pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 id="project-dashboard-title" className="text-2xl font-bold text-[#0F2053] sm:text-3xl">{t("projects.heading")}</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{t("projects.dashboardDescription")}</p>
+        </div>
+        <button type="button" onClick={createProject} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#0F2053] px-4 text-sm font-bold text-[#EDE6CC] sm:w-auto">
+          <Plus size={18} aria-hidden="true" />
+          {t("projects.new")}
+        </button>
+      </div>
+
+      <div className="relative mt-6">
+        <Search className="pointer-events-none absolute inset-y-0 start-3 my-auto size-5 text-slate-500" aria-hidden="true" />
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={t("projects.searchPlaceholder")}
+          aria-label={t("projects.search")}
+          className="min-h-11 w-full rounded-lg border border-slate-300 bg-white py-2 pe-3 ps-10 text-sm text-slate-900 outline-none transition focus:border-[#0F2053] focus:ring-2 focus:ring-[#0F2053]/15"
+        />
+      </div>
+
+      {message ? <p className="mt-3 text-sm font-semibold text-red-700" role="status">{message}</p> : null}
+
+      {projects.length === 0 ? (
+        <div className="mt-8 rounded-xl border border-dashed border-[#0F2053]/25 bg-white px-5 py-12 text-center">
+          <FolderOpen className="mx-auto size-8 text-[#0F2053]" aria-hidden="true" />
+          <h3 className="mt-4 text-lg font-bold text-[#0F2053]">{t("projects.emptyDashboardTitle")}</h3>
+          <p className="mt-2 text-sm text-slate-600">{t("projects.emptyDashboardDescription")}</p>
+          <button type="button" onClick={createProject} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#0F2053] px-4 text-sm font-bold text-[#EDE6CC]">
+            <Plus size={18} aria-hidden="true" />
+            {t("projects.new")}
+          </button>
+        </div>
+      ) : visibleProjects.length === 0 ? (
+        <p className="mt-6 rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600">{t("projects.noResults")}</p>
+      ) : (
+        <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {visibleProjects.map((project) => {
+            const rooms = roomCount(project);
+            const menuIsOpen = openMenuId === project.id;
+            return (
+              <article key={project.id} className="relative flex min-w-0 flex-col rounded-xl border border-slate-200 bg-white p-4">
+                <div className="flex min-w-0 items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="truncate font-bold text-[#0F2053]" title={project.name}>{project.name}</h3>
+                    <p className="mt-1 text-xs text-slate-500">{t("projects.updated")} {formatDate(project.savedAt, { dateStyle: "medium" })}</p>
+                  </div>
+                  <div className="relative shrink-0">
+                    <button type="button" onClick={() => setOpenMenuId(menuIsOpen ? null : project.id)} className="grid size-10 place-items-center rounded-lg text-slate-600 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0F2053]/20" aria-label={t("projects.actions")} aria-expanded={menuIsOpen}>
+                      <MoreHorizontal size={20} aria-hidden="true" />
+                    </button>
+                    {menuIsOpen ? (
+                      <div className="absolute end-0 z-10 mt-1 min-w-36 rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
+                        <button type="button" onClick={() => renameProject(project)} className="flex min-h-10 w-full items-center gap-2 rounded-md px-3 text-start text-sm hover:bg-slate-50"><Pencil size={16} aria-hidden="true" />{t("projects.rename")}</button>
+                        <button type="button" onClick={() => duplicateSavedProject(project)} className="flex min-h-10 w-full items-center gap-2 rounded-md px-3 text-start text-sm hover:bg-slate-50"><Copy size={16} aria-hidden="true" />{t("projects.duplicate")}</button>
+                        <button type="button" onClick={() => removeProject(project)} className="flex min-h-10 w-full items-center gap-2 rounded-md px-3 text-start text-sm text-red-700 hover:bg-red-50"><Trash2 size={16} aria-hidden="true" />{t("common.delete")}</button>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
+                  {rooms > 0 ? <span>{t("projects.rooms", { count: rooms })}</span> : null}
+                  <span>{t(`project.${project.data.metadata.status}`)}</span>
+                </div>
+                <button type="button" onClick={() => openProject(project)} className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#0F2053]/25 px-3 text-sm font-bold text-[#0F2053] hover:bg-[#EDE6CC]/45 focus:outline-none focus:ring-2 focus:ring-[#0F2053]/20">
+                  <FolderOpen size={17} aria-hidden="true" />
+                  {t("projects.open")}
+                </button>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
 }

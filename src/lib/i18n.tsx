@@ -13,7 +13,7 @@ import { previewMessages } from "@/lib/preview-messages";
 import { workspaceMessages } from "@/lib/workspace-messages";
 import { phase3Messages } from "@/lib/phase3-messages";
 import { scenarioMessages } from "@/lib/scenario-messages";
-import { analyticsMessages } from "@/lib/analytics-messages";
+import { projectDashboardMessages } from "@/lib/project-dashboard-messages";
 import { phase8Messages } from "@/lib/phase8-messages";
 import { phase9Messages } from "@/lib/phase9-messages";
 import { phase10Messages } from "@/lib/phase10-messages";
@@ -244,9 +244,9 @@ const ar: Messages = {
 };
 
 const dictionaries: Record<Language, Messages> = {
-  ku: { ...ku, ...previewMessages.ku, ...workspaceMessages.ku, ...phase3Messages.ku, ...scenarioMessages.ku, ...analyticsMessages.ku, ...phase8Messages.ku, ...phase9Messages.ku, ...phase10Messages.ku, ...phase14Messages.ku, ...phase15Messages.ku },
-  ar: { ...ar, ...previewMessages.ar, ...workspaceMessages.ar, ...phase3Messages.ar, ...scenarioMessages.ar, ...analyticsMessages.ar, ...phase8Messages.ar, ...phase9Messages.ar, ...phase10Messages.ar, ...phase14Messages.ar, ...phase15Messages.ar },
-  "en-GB": { ...en, ...previewMessages["en-GB"], ...workspaceMessages["en-GB"], ...phase3Messages["en-GB"], ...scenarioMessages["en-GB"], ...analyticsMessages["en-GB"], ...phase8Messages["en-GB"], ...phase9Messages["en-GB"], ...phase10Messages["en-GB"], ...phase14Messages["en-GB"], ...phase15Messages["en-GB"] },
+  ku: { ...ku, ...previewMessages.ku, ...workspaceMessages.ku, ...phase3Messages.ku, ...scenarioMessages.ku, ...projectDashboardMessages.ku, ...phase8Messages.ku, ...phase9Messages.ku, ...phase10Messages.ku, ...phase14Messages.ku, ...phase15Messages.ku },
+  ar: { ...ar, ...previewMessages.ar, ...workspaceMessages.ar, ...phase3Messages.ar, ...scenarioMessages.ar, ...projectDashboardMessages.ar, ...phase8Messages.ar, ...phase9Messages.ar, ...phase10Messages.ar, ...phase14Messages.ar, ...phase15Messages.ar },
+  "en-GB": { ...en, ...previewMessages["en-GB"], ...workspaceMessages["en-GB"], ...phase3Messages["en-GB"], ...scenarioMessages["en-GB"], ...projectDashboardMessages["en-GB"], ...phase8Messages["en-GB"], ...phase9Messages["en-GB"], ...phase10Messages["en-GB"], ...phase14Messages["en-GB"], ...phase15Messages["en-GB"] },
 };
 
 function interpolate(message: string, values?: MessageValues) {
