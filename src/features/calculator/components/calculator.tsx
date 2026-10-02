@@ -27,6 +27,7 @@ import { CalculationBreakdown } from "./calculation-breakdown";
 import { CalculationOptions } from "./calculation-options";
 import { IndividualWalls } from "./individual-walls";
 import { ModeSwitcher } from "./mode-switcher";
+import { WorkingMode } from "./working-mode";
 import { PrintReport } from "./print-report";
 import { ProjectInformation } from "./project-information";
 import { ResultsDashboard } from "./results-dashboard";
@@ -556,38 +557,15 @@ export function Calculator() {
             mode={data.mode}
             onChange={(mode) => setData((current) => ({ ...current, mode }))}
           />
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="font-bold">دۆخی کارکردن</h2>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() =>
-                  setData((current) => ({
-                    ...current,
-                    settings: { ...current.settings, interfaceMode: "quick" },
-                  }))
-                }
-                className={`min-h-11 rounded-lg border px-3 font-semibold ${data.settings.interfaceMode === "quick" ? "border-amber-600 bg-amber-50" : "border-slate-200"}`}
-              >
-                دۆخی خێرا
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setData((current) => ({
-                    ...current,
-                    settings: {
-                      ...current.settings,
-                      interfaceMode: "advanced",
-                    },
-                  }))
-                }
-                className={`min-h-11 rounded-lg border px-3 font-semibold ${data.settings.interfaceMode === "advanced" ? "border-amber-600 bg-amber-50" : "border-slate-200"}`}
-              >
-                دۆخی پێشکەوتوو
-              </button>
-            </div>
-          </section>
+          <WorkingMode
+            mode={data.settings.interfaceMode}
+            onChange={(interfaceMode) =>
+              setData((current) => ({
+                ...current,
+                settings: { ...current.settings, interfaceMode },
+              }))
+            }
+          />
           {data.mode === "rooms" ? (
             <>
               <RoomsEditor

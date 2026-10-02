@@ -1,11 +1,68 @@
 import { Check, Ruler } from "lucide-react";
+
 import { BlockDimensionField } from "@/components/ui/block-dimension-field";
 import { blockDefinitions } from "@/features/calculator/config/blocks";
 import type { CalculatorSettings } from "@/features/calculator/types";
 import { useI18n } from "@/lib/i18n";
 
-interface BlockLibraryProps { settings: CalculatorSettings; onChange: (next: CalculatorSettings) => void; showValidation: boolean; }
-export function BlockLibrary({ settings, onChange, showValidation }: BlockLibraryProps) {
-  const { t } = useI18n(); const custom = settings.customBlock; const update = (field: keyof typeof custom, value: number) => onChange({ ...settings, customBlock: { ...custom, [field]: value } }); const invalid = (value: number) => showValidation && !(Number.isFinite(value) && value > 0);
-  return <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><div className="flex items-center gap-2"><Ruler size={20} className="text-amber-700" /><h2 className="text-xl font-bold text-slate-950">{t("blocks.heading")}</h2></div><p className="mt-1 text-sm leading-6 text-slate-600">{t("blocks.description")}</p><div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{blockDefinitions.map((block) => { const selected = settings.blockMode === "library" && settings.selectedBlockId === block.id; return <button key={block.id} type="button" onClick={() => onChange({ ...settings, blockMode: "library", selectedBlockId: block.id as CalculatorSettings["selectedBlockId"] })} className={`relative min-h-28 rounded-xl border p-4 text-start ${selected ? "border-amber-600 bg-amber-50" : "border-slate-200"}`}>{selected ? <span className="absolute start-3 top-3 grid size-5 place-items-center rounded-full bg-amber-600 text-white"><Check size={14} /></span> : null}<strong className="block text-slate-950">{block.name}</strong><span className="mt-2 block text-sm text-slate-600">{t("blocks.face")}: {block.lengthCm} × {block.heightCm} cm</span><span className="mt-1 block text-xs text-slate-500">{t("blocks.thickness")}: {block.thicknessCm} cm</span></button>; })}<button type="button" onClick={() => onChange({ ...settings, blockMode: "custom" })} className={`relative min-h-28 rounded-xl border p-4 text-start ${settings.blockMode === "custom" ? "border-amber-600 bg-amber-50" : "border-slate-200"}`}><strong className="block text-slate-950">{t("blocks.custom")}</strong><span className="mt-2 block text-sm text-slate-600">{t("blocks.customHint")}</span></button></div>{settings.blockMode === "custom" ? <div className="mt-5 rounded-xl bg-slate-50 p-4"><h3 className="font-bold text-slate-900">{t("blocks.customHeading")}</h3><div className="mt-4 grid gap-3 sm:grid-cols-3"><BlockDimensionField id="custom-block-length" label={t("common.length")} valueCm={custom.lengthCm} unit={settings.customBlockUnit} onChange={(value) => update("lengthCm", value)} onUnitChange={(unit) => onChange({ ...settings, customBlockUnit: unit })} invalid={invalid(custom.lengthCm)} /><BlockDimensionField id="custom-block-height" label={t("common.height")} valueCm={custom.heightCm} unit={settings.customBlockUnit} onChange={(value) => update("heightCm", value)} onUnitChange={(unit) => onChange({ ...settings, customBlockUnit: unit })} invalid={invalid(custom.heightCm)} /><BlockDimensionField id="custom-block-thickness" label={t("blocks.thickness")} valueCm={custom.thicknessCm} unit={settings.customBlockUnit} onChange={(value) => update("thicknessCm", value)} onUnitChange={(unit) => onChange({ ...settings, customBlockUnit: unit })} invalid={invalid(custom.thicknessCm)} /></div></div> : null}</section>;
+interface Props {
+  settings: CalculatorSettings;
+  onChange: (next: CalculatorSettings) => void;
+  showValidation: boolean;
+}
+
+export function BlockLibrary({ settings, onChange, showValidation }: Props) {
+  const { t } = useI18n();
+  const custom = settings.customBlock;
+  const update = (key: keyof typeof custom, value: number) => onChange({
+    ...settings,
+    customBlock: { ...custom, [key]: value },
+  });
+  const invalid = (value: number) => showValidation && !(value > 0);
+
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="flex items-center gap-2">
+        <Ruler size={20} className="text-amber-700" />
+        <h2 className="text-xl font-bold text-slate-950">{t("blocks.heading")}</h2>
+      </div>
+      <p className="mt-1 text-xs leading-5 text-slate-500">{t("blocks.helper")}</p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {blockDefinitions.map((block) => {
+          const selected = settings.blockMode === "library" && settings.selectedBlockId === block.id;
+          return (
+            <button
+              key={block.id}
+              type="button"
+              onClick={() => onChange({ ...settings, blockMode: "library", selectedBlockId: block.id as CalculatorSettings["selectedBlockId"] })}
+              className={`relative min-h-28 rounded-xl border p-4 text-start ${selected ? "border-amber-600 bg-amber-50" : "border-slate-200"}`}
+            >
+              {selected ? <span className="absolute start-3 top-3 grid size-5 place-items-center rounded-full bg-amber-600 text-white"><Check size={14} /></span> : null}
+              <strong className="block text-slate-950">{block.name}</strong>
+              <span className="mt-2 block text-sm text-slate-600">{t("blocks.face")}: {block.lengthCm} × {block.heightCm} cm</span>
+              <span className="mt-1 block text-xs text-slate-500">{t("blocks.thickness")}: {block.thicknessCm} cm</span>
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => onChange({ ...settings, blockMode: "custom" })}
+          className={`relative min-h-28 rounded-xl border p-4 text-start ${settings.blockMode === "custom" ? "border-amber-600 bg-amber-50" : "border-slate-200"}`}
+        >
+          <strong className="block text-slate-950">{t("blocks.custom")}</strong>
+          <span className="mt-2 block text-sm text-slate-600">{t("blocks.customHint")}</span>
+        </button>
+      </div>
+      {settings.blockMode === "custom" ? (
+        <div className="mt-5 rounded-xl bg-slate-50 p-4">
+          <h3 className="font-bold text-slate-900">{t("blocks.customHeading")}</h3>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <BlockDimensionField id="custom-block-length" label={t("common.length")} valueCm={custom.lengthCm} unit={settings.customBlockUnit} onChange={(value) => update("lengthCm", value)} onUnitChange={(unit) => onChange({ ...settings, customBlockUnit: unit })} invalid={invalid(custom.lengthCm)} />
+            <BlockDimensionField id="custom-block-height" label={t("common.height")} valueCm={custom.heightCm} unit={settings.customBlockUnit} onChange={(value) => update("heightCm", value)} onUnitChange={(unit) => onChange({ ...settings, customBlockUnit: unit })} invalid={invalid(custom.heightCm)} />
+            <BlockDimensionField id="custom-block-thickness" label={t("blocks.thickness")} valueCm={custom.thicknessCm} unit={settings.customBlockUnit} onChange={(value) => update("thicknessCm", value)} onUnitChange={(unit) => onChange({ ...settings, customBlockUnit: unit })} invalid={invalid(custom.thicknessCm)} />
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
 }

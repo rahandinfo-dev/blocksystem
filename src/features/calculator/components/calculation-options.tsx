@@ -153,6 +153,7 @@ export function CalculationOptions({
         <summary className="cursor-pointer font-bold">
           {t("options.extras")}
         </summary>
+        <p className="mt-2 text-xs leading-5 text-slate-500">{t("options.materialCostDescription")}</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <CurrencyField
             id="transport"
@@ -168,13 +169,16 @@ export function CalculationOptions({
             onChange={(value) => update({ laborCost: value })}
             currencyLabel={currencyLabel}
           />
-          <CurrencyField
-            id="mortar-cost"
-            label={t("options.mortarCost")}
-            value={settings.mortarCost}
-            onChange={(value) => update({ mortarCost: value })}
-            currencyLabel={currencyLabel}
-          />
+          <div>
+            <CurrencyField
+              id="mortar-cost"
+              label={t("options.mortarCost")}
+              value={settings.mortarCost}
+              onChange={(value) => update({ mortarCost: value })}
+              currencyLabel={currencyLabel}
+            />
+            <p className="mt-1 text-xs leading-5 text-slate-500">{t("options.mortarCostDescription")}</p>
+          </div>
           <CurrencyField
             id="other-cost"
             label={t("options.otherCost")}
@@ -188,6 +192,7 @@ export function CalculationOptions({
         <summary className="cursor-pointer font-bold">
           {t("options.mortar")}
         </summary>
+        <p className="mt-2 text-xs leading-5 text-slate-500">{t("options.mortarDescription")}</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <label className="inline-flex items-center gap-2">
             <input
@@ -207,27 +212,33 @@ export function CalculationOptions({
               onChange={(value) => update({ mortarConsumptionM3PerM2: value })}
             />
           ) : null}
-          <label className="inline-flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={settings.mortarJointEnabled}
-              onChange={(event) =>
-                update({ mortarJointEnabled: event.target.checked })
-              }
-            />{" "}
-            {t("options.mortarJoint")}
-          </label>
+          <div>
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={settings.mortarJointEnabled}
+                onChange={(event) =>
+                  update({ mortarJointEnabled: event.target.checked })
+                }
+              />{" "}
+              {t("options.mortarJoint")}
+            </label>
+            <p className="mt-1 text-xs leading-5 text-slate-500">{t("options.jointDescription")}</p>
+          </div>
           {settings.mortarJointEnabled ? (
-            <BlockDimensionField
-              id="joint"
-              label={t("options.jointWidth")}
-              valueCm={Number(settings.mortarJointThicknessCm || 0)}
-              unit={settings.mortarJointUnit}
-              onChange={(value) =>
-                update({ mortarJointThicknessCm: String(value) })
-              }
-              onUnitChange={(unit) => update({ mortarJointUnit: unit })}
-            />
+            <div>
+              <BlockDimensionField
+                id="joint"
+                label={t("options.jointWidth")}
+                valueCm={Number(settings.mortarJointThicknessCm || 0)}
+                unit={settings.mortarJointUnit}
+                onChange={(value) =>
+                  update({ mortarJointThicknessCm: String(value) })
+                }
+                onUnitChange={(unit) => update({ mortarJointUnit: unit })}
+              />
+              <p className="mt-1 text-xs leading-5 text-slate-500">{t("options.jointCalculationNote")}</p>
+            </div>
           ) : null}
         </div>
       </details>
