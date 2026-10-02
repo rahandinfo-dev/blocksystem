@@ -18,13 +18,13 @@ export function FloorPlanPreview({ data, onChange }: Props) {
 
   return (
     <>
-      <section id="floor-plan-preview" data-plan-preview className="rounded-2xl border border-slate-200 bg-[var(--brand-navy)] p-6 text-[var(--brand-cream)] shadow-sm" dir={direction} aria-labelledby="floor-plan-preview-title">
+      <section id="floor-plan-preview" data-plan-preview className="tool-entry rounded-2xl border border-slate-200 bg-[var(--brand-navy)] p-6 text-[var(--brand-cream)] shadow-sm" dir={direction} aria-labelledby="floor-plan-preview-title">
         <div className="flex flex-wrap items-center justify-between gap-5">
           <div>
             <div className="flex items-center gap-2"><ScanLine size={22} className="text-amber-300" /><h2 id="floor-plan-preview-title" className="text-xl font-bold">{t("plan.title")}</h2></div>
             <p className="mt-2 max-w-xl text-sm leading-6 text-slate-200">{t("plan.previewDescription")}</p>
           </div>
-          <button type="button" data-plan-preview-open onClick={() => setOpen(true)} className="inline-flex min-h-12 shrink-0 items-center gap-2 rounded-xl bg-amber-500 px-4 font-bold text-slate-950 hover:bg-amber-400">
+          <button type="button" data-plan-preview-open onClick={() => setOpen(true)} className="tool-entry__action inline-flex min-h-12 shrink-0 items-center gap-2 rounded-xl bg-amber-500 px-4 font-bold text-slate-950 hover:bg-amber-400">
             <Maximize2 size={18} /> {t("plan.open")}
           </button>
         </div>

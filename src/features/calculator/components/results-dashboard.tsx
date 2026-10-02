@@ -32,27 +32,27 @@ export function ResultsDashboard({ result, error }: { result?: CalculationResult
     : [];
 
   return (
-    <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6" aria-live="polite">
-      <div className="flex items-center gap-2">
+    <aside className="result-panel workspace-card h-fit p-5 sm:p-6" aria-live="polite">
+      <div className="result-panel__heading flex items-center gap-2">
         <span className="grid size-9 place-items-center rounded-lg bg-amber-100 text-amber-800"><CheckCircle2 size={20} /></span>
         <h2 className="text-xl font-bold text-slate-950">{t("results.heading")}</h2>
       </div>
       {error ? <div className="mt-5 flex gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert"><AlertTriangle size={19} /><p>{error}</p></div> : null}
       {!result && !error ? <p className="mt-5 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">{t("results.empty")}</p> : null}
-      {result ? <div className="mt-5">
+      {result ? <div>
+        <div className="result-primary"><p className="text-sm font-semibold">{t("results.recommended")}</p><strong>{formatNumber(result.recommendedBlocks, { maximumFractionDigits: 0 })}</strong></div>
+        {result.cost && result.cost.grandTotal > 0 ? <div className="result-cost"><p className="text-sm font-semibold text-[#0F2053]">{t("results.totalCost")}</p><p className="mt-1 font-bold text-[#0F2053]" dir="ltr">{formatMoney(result.cost.grandTotal, result.cost.currency)}</p></div> : null}
         <div className="mb-2 flex items-center justify-between gap-3">
           <label htmlFor="result-area-unit" className="text-sm font-semibold">{t("results.areaUnit")}</label>
           <select id="result-area-unit" value={areaUnit} onChange={(event) => setAreaUnit(event.target.value as AreaUnit)} className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm">
             <option value="m²">m²</option><option value="cm²">cm²</option><option value="mm²">mm²</option>
           </select>
         </div>
-        <dl className="divide-y divide-slate-100 border-y border-slate-100">
+        <dl className="result-secondary divide-y divide-slate-100 border-y border-slate-100">
           {areas.map(([label, value]) => <div key={label} className="flex items-center justify-between gap-4 py-3.5"><dt className="text-sm text-slate-600">{label}</dt><dd className="shrink-0 font-bold" dir="ltr">{number(convertArea(value, "m²", areaUnit))} {areaUnit}</dd></div>)}
           <div className="flex items-center justify-between gap-4 py-3.5"><dt className="text-sm text-slate-600">{t("results.required")}</dt><dd className="font-bold">{formatNumber(result.requiredBlocks, { maximumFractionDigits: 0 })}</dd></div>
           {result.wastePercentage > 0 ? <div className="flex items-center justify-between gap-4 py-3.5"><dt className="text-sm text-slate-600">{t("results.waste", { value: `${number(result.wastePercentage)}%` })}</dt><dd className="font-bold">{formatNumber(result.wasteBlocks, { maximumFractionDigits: 0 })}</dd></div> : null}
         </dl>
-        <div className="mt-5 rounded-xl bg-slate-900 p-5 text-white"><p className="text-sm text-slate-300">{t("results.recommended")}</p><p className="mt-2 text-4xl font-bold">{formatNumber(result.recommendedBlocks, { maximumFractionDigits: 0 })}</p></div>
-        {result.cost && result.cost.grandTotal > 0 ? <div className="mt-3 rounded-xl border border-[#0F2053]/15 bg-[#EDE6CC]/55 p-4"><p className="text-sm font-semibold text-[#0F2053]">{t("results.totalCost")}</p><p className="mt-1 text-2xl font-bold text-[#0F2053]" dir="ltr">{formatMoney(result.cost.grandTotal, result.cost.currency)}</p></div> : null}
         {result.cost && costRows.length > 0 ? <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4"><div className="flex items-center gap-2 text-amber-900"><WalletCards size={19} /><h3 className="font-bold">{t("results.cost")}</h3></div><dl className="mt-3 space-y-2 text-sm">{costRows.map(([label, value]) => <div key={label} className="flex justify-between gap-3"><dt>{label}</dt><dd dir="ltr">{formatMoney(value, result.cost!.currency)}</dd></div>)}<div className="flex justify-between gap-3 border-t border-amber-200 pt-2 font-bold"><dt>{t("results.totalCost")}</dt><dd dir="ltr">{formatMoney(result.cost.grandTotal, result.cost.currency)}</dd></div></dl></div> : null}
         {result.mortar ? <div className="mt-5 rounded-xl bg-slate-50 p-4 text-sm"><div className="flex flex-wrap items-center gap-2"><label htmlFor="result-volume-unit" className="font-bold">{t("results.estimatedMortar")}</label><select id="result-volume-unit" value={volumeUnit} onChange={(event) => setVolumeUnit(event.target.value as VolumeUnit)} className="rounded border border-slate-300 px-2 py-1">{volumeUnits.map((unit) => <option key={unit}>{unit}</option>)}</select></div><p className="mt-2" dir="ltr">{number(convertVolume(result.mortar.estimatedVolumeM3, "m³", volumeUnit))} {volumeUnit}</p></div> : null}
       </div> : null}

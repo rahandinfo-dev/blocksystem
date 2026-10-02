@@ -508,12 +508,12 @@ export function Calculator() {
       ),
     }));
   return (
-    <div className="space-y-6">
+    <div className="workspace-shell">
       <WorkspaceConsole
         saveState={saveState}
         onSave={() => saveWorkspace("manual")}
       />
-      <div className="print:hidden flex flex-wrap justify-end gap-2">
+      <div className="workspace-actions print:hidden">
         <button type="button" onClick={undo} disabled={past.length === 0} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-45"><Undo2 size={18} /> گەڕاندنەوە</button>
         <button type="button" onClick={redo} disabled={future.length === 0} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-45"><Redo2 size={18} /> دووبارەکردنەوە</button>
         <PrintReport
@@ -530,14 +530,14 @@ export function Calculator() {
           <RotateCcw size={18} /> پاککردنەوەی هەموو
         </button>
       </div>
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_26rem]">
+      <div className="workspace-grid">
         <form
           noValidate
           onSubmit={(event) => {
             event.preventDefault();
             setHasCalculated(true);
           }}
-          className="space-y-6 print:hidden"
+          className="workspace-column print:hidden"
         >
           <ProjectInformation
             metadata={data.metadata}
@@ -656,17 +656,17 @@ export function Calculator() {
           />
           <button
             type="submit"
-            className="inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-amber-600 px-5 text-lg font-bold text-white sm:w-auto sm:min-w-56"
+            className="primary-action inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-xl px-5 text-lg font-bold sm:w-auto sm:min-w-56"
           >
             <CalculatorIcon size={21} /> حیسابکردن
           </button>
         </form>
-        <div className="space-y-6">
+        <div className="workspace-rail">
           <ResultsDashboard result={result} error={error} />
           <WallPreview units={numericUnits} block={selectedBlock} />
         </div>
       </div>
-      <div className="print:hidden space-y-6">
+      <div className="workspace-tools print:hidden">
         <CalculationBreakdown result={result} />
         <FloorPlanPreview data={data} onChange={setData} />
         <BackupRecovery />

@@ -26,12 +26,12 @@ export function WorkspaceConsole({ saveState, onSave }: Props) {
       : "text-emerald-700";
 
   return (
-    <div className="print:hidden mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
+    <div className="workspace-console print:hidden flex flex-wrap items-center justify-between gap-3">
       <p className={`inline-flex min-h-10 items-center gap-2 text-sm font-semibold ${stateClass}`} aria-live="polite">
         {saveState === "saving" ? <LoaderCircle size={16} className="animate-spin" aria-hidden="true" /> : <Check size={16} aria-hidden="true" />}
         {state}
       </p>
-      <button type="button" onClick={onSave} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#0F2053]/25 px-3 text-sm font-semibold text-[#0F2053] hover:bg-[#EDE6CC]/45">
+      <button type="button" onClick={onSave} className="secondary-action inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 text-sm font-semibold hover:bg-[#EDE6CC]/45">
         <Save size={17} aria-hidden="true" />
         {t("workspace.manualSave")}
       </button>

@@ -76,7 +76,7 @@ export function WallPreview({ units, block }: Props) {
     return (
       <section
         id="room-preview"
-        className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+        className="workspace-card rounded-2xl p-5"
       >
         <h2 className="text-xl font-bold">{t("preview.heading")}</h2>
         <p className="mt-2 text-sm text-slate-600">
@@ -104,7 +104,7 @@ export function WallPreview({ units, block }: Props) {
     <>
       <section
         id="room-preview"
-        className="rounded-2xl border border-slate-200 bg-[var(--brand-navy)] p-6 text-[var(--brand-cream)] shadow-sm"
+        className="tool-entry rounded-2xl border border-slate-200 bg-[var(--brand-navy)] p-6 text-[var(--brand-cream)] shadow-sm"
       >
         <div className="flex flex-wrap items-center justify-between gap-5">
           <div>
@@ -126,7 +126,7 @@ export function WallPreview({ units, block }: Props) {
           <button
             type="button"
             onClick={enter}
-            className="inline-flex min-h-12 shrink-0 items-center gap-2 rounded-xl bg-amber-500 px-4 font-bold text-slate-950 hover:bg-amber-400"
+            className="tool-entry__action inline-flex min-h-12 shrink-0 items-center gap-2 rounded-xl bg-amber-500 px-4 font-bold text-slate-950 hover:bg-amber-400"
           >
             <Maximize2 size={18} /> {t("preview.open")}
           </button>

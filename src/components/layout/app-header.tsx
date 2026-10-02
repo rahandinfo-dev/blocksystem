@@ -39,12 +39,12 @@ export function AppHeader() {
   };
   const itemClass = (destination: string) => `w-full rounded-lg px-3 py-3 text-start font-semibold ${active === destination ? "bg-[var(--brand-navy)] text-[var(--brand-cream)]" : "hover:bg-[var(--brand-cream)]"}`;
   return (
-    <header className="border-b border-slate-200 bg-[var(--brand-cream)]">
+    <header className="app-header border-b border-slate-200 bg-[var(--brand-cream)]">
       <div
-        className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8"
+        className="app-header__inner mx-auto flex w-full items-center justify-between gap-3 px-4 sm:px-6 lg:px-8"
       >
         <div className="flex items-center gap-3">
-          <span className="grid size-9 place-items-center rounded-lg bg-[var(--brand-navy)] text-[var(--brand-cream)]">
+          <span className="app-header__brand-mark grid size-9 place-items-center rounded-lg bg-[var(--brand-navy)] text-[var(--brand-cream)]">
             <Blocks size={20} />
           </span>
           <span className="text-base font-bold tracking-tight text-slate-950">
@@ -57,7 +57,7 @@ export function AppHeader() {
           onClick={() => setOpen(true)}
           aria-expanded={open}
           aria-controls="app-menu"
-          className="order-last inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-300 px-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+          className="app-header__menu order-last inline-flex items-center gap-2 rounded-lg border px-3 text-sm font-bold focus:outline-none"
         >
           <Menu size={18} /> {t("common.menu")}
         </button>

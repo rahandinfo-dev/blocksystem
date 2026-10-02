@@ -35,8 +35,8 @@ function metres(value: string): number {
 export function WallsEditor(props: WallsEditorProps) {
   const { t } = useI18n();
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-      <div className="flex items-center justify-between gap-3">
+    <section className="workspace-card p-5 sm:p-6">
+      <div className="workspace-section-header">
         <div>
           <h2 className="text-xl font-bold text-slate-950">{t("walls.heading")}</h2>
           <p className="mt-1 text-sm text-slate-600">{t("walls.description")}</p>

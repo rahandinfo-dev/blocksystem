@@ -588,3 +588,97 @@ input[type="number"]::-webkit-outer-spin-button {
   #document-print-root .document-preview { border:0; padding:0; max-width:none; }
 }
 
+/* 2026 engineering workspace: a calm canvas, a deliberate reading order and
+   shared control language across the calculator without changing its data flow. */
+:root {
+  --surface: #fffdf7;
+  --surface-muted: #f5f1e3;
+  --ink-muted: #526078;
+  --line-soft: rgb(15 32 83 / 13%);
+  --line-strong: rgb(15 32 83 / 25%);
+}
+
+.app-shell { background: #f4f1e7; }
+.app-header { position: sticky; top: 0; z-index: 30; background: var(--surface); }
+.app-header__inner { max-width: 86rem; height: 4.25rem; }
+.app-header__brand-mark { border-radius: .8rem; box-shadow: 0 4px 12px rgb(15 32 83 / 16%); }
+.app-header__menu { min-height: 2.75rem; border-color: var(--line-soft); background: var(--surface); color: var(--brand-navy); }
+
+.workspace-page { max-width: 86rem; padding-block: clamp(1.5rem, 4vw, 3.5rem); }
+.workspace-intro { display: grid; gap: .75rem; margin-block-end: clamp(2rem, 5vw, 3.75rem); padding-inline-start: clamp(1rem, 3vw, 1.5rem); border-inline-start: 3px solid var(--brand-navy); }
+.workspace-intro__eyebrow { margin: 0; color: var(--brand-navy); font-size: .78rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.workspace-intro h1 { max-width: 46rem; font-size: clamp(2rem, 4vw, 3.35rem); letter-spacing: -.035em; }
+.workspace-intro__description { max-width: 43rem; color: var(--ink-muted); }
+
+.project-dashboard { margin-block-end: clamp(2.5rem, 6vw, 4.5rem); padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid var(--line-soft); border-radius: 1.25rem; background: var(--surface); }
+.project-dashboard__header { border: 0; padding-block-end: 1.25rem; }
+.project-dashboard__search { border-color: var(--line-soft); background: var(--surface-muted); border-radius: .85rem; }
+.project-dashboard__card { border-color: var(--line-soft); border-radius: 1rem; box-shadow: none; transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease; }
+.project-dashboard__card:hover { border-color: var(--line-strong); box-shadow: 0 10px 24px rgb(15 32 83 / 7%); transform: translateY(-2px); }
+
+.workspace-shell { display: grid; gap: 1.5rem; }
+.workspace-console { margin: 0 !important; padding: .9rem 1rem; border: 1px solid var(--line-soft) !important; border-radius: .9rem; background: var(--surface); }
+.workspace-actions { display: flex; flex-wrap: wrap; gap: .5rem; padding-block-end: .25rem; }
+.workspace-actions > button { min-height: 2.65rem; border-color: var(--line-soft); background: transparent; color: var(--brand-navy); }
+.workspace-grid { display: grid; align-items: start; gap: clamp(1.25rem, 3vw, 2rem); }
+.workspace-column, .workspace-rail { display: grid; align-content: start; gap: 1.25rem; }
+.workspace-tools { display: grid; gap: 1.25rem; margin-block-start: .25rem; }
+
+.workspace-card { border: 1px solid var(--line-soft) !important; border-radius: 1rem !important; background: var(--surface) !important; box-shadow: none !important; }
+.workspace-card:hover { border-color: var(--line-strong) !important; }
+.workspace-card > h2, .workspace-card > div > h2 { letter-spacing: -.018em; }
+.workspace-card details { border-color: var(--line-soft) !important; }
+.workspace-card summary { color: var(--brand-navy); }
+.workspace-card article { border-color: var(--line-soft) !important; border-radius: .85rem !important; background: color-mix(in srgb, var(--surface) 94%, var(--surface-muted)) !important; }
+
+.workspace-section-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding-block-end: 1rem; border-block-end: 1px solid var(--line-soft); }
+.workspace-section-header p { color: var(--ink-muted); }
+.primary-action { min-height: 3.5rem !important; border-radius: .85rem !important; background: var(--brand-navy) !important; color: var(--brand-cream) !important; box-shadow: 0 8px 18px rgb(15 32 83 / 16%); }
+.primary-action:hover { background: var(--brand-navy-hover) !important; transform: translateY(-1px); }
+.secondary-action { border-color: var(--line-strong) !important; background: var(--surface) !important; color: var(--brand-navy) !important; }
+
+.form-label { margin-block-end: .4rem; color: var(--brand-navy); font-size: .8rem; font-weight: 800; letter-spacing: .01em; }
+.form-control, .app-select, select { border-radius: .72rem !important; border-color: var(--line-strong) !important; background-color: var(--surface) !important; box-shadow: none !important; }
+.form-control:hover, .app-select:hover, select:hover { border-color: var(--brand-navy) !important; box-shadow: 0 2px 7px rgb(15 32 83 / 6%) !important; }
+.form-control:focus, .app-select:focus, select:focus { box-shadow: 0 0 0 3px rgb(15 32 83 / 13%) !important; }
+
+.segmented-control { display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; width: 100%; padding: .25rem; border: 1px solid var(--line-soft); border-radius: .9rem; background: var(--surface-muted); }
+.segment { min-height: 3.15rem; border: 0; border-radius: .65rem; padding: .55rem .75rem; color: var(--ink-muted); text-align: start; }
+.segment[aria-pressed="true"] { background: var(--surface); color: var(--brand-navy); box-shadow: 0 2px 8px rgb(15 32 83 / 12%); }
+.waste-presets { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; padding: .25rem; border: 1px solid var(--line-soft); border-radius: .85rem; background: var(--surface-muted); }
+.waste-presets button { min-height: 2.8rem; border-color: transparent !important; border-radius: .6rem !important; background: transparent !important; color: var(--ink-muted) !important; }
+.waste-presets button[aria-pressed="true"] { background: var(--brand-navy) !important; color: var(--brand-cream) !important; box-shadow: 0 2px 7px rgb(15 32 83 / 18%); }
+.waste-presets button:nth-child(2), .waste-presets button:nth-child(4), .waste-presets button:nth-child(7) { display: none; }
+.waste-presets button[aria-pressed="true"] { display: block !important; }
+
+.result-panel { position: sticky; top: 5.25rem; overflow: hidden; border-color: var(--line-strong) !important; }
+.result-panel__heading { padding-block-end: 1rem; border-block-end: 1px solid var(--line-soft); }
+.result-primary { margin-block-start: 1.25rem; padding: 1.35rem; border-radius: 1rem; background: var(--brand-navy); color: var(--brand-cream); }
+.result-primary p { color: color-mix(in srgb, var(--brand-cream) 78%, transparent); }
+.result-primary strong { display: block; margin-block-start: .35rem; font-size: clamp(2.6rem, 6vw, 4.25rem); line-height: .95; letter-spacing: -.06em; }
+.result-cost { margin-block-start: .75rem; padding: 1rem 1.15rem; border: 1px solid var(--line-soft); border-radius: .85rem; background: var(--surface-muted); }
+.result-cost p:last-child { font-size: 1.45rem; }
+.result-primary + div:not(.result-cost), .result-cost + div { margin-block-start: 1rem; }
+.result-secondary { margin-block-start: 1.25rem; border: 0 !important; }
+.result-secondary > div { padding-block: .7rem !important; }
+.result-details { margin-block-start: 1rem; border-radius: .8rem; background: var(--surface-muted); }
+
+.tool-entry { border: 1px solid var(--line-strong) !important; border-radius: 1rem !important; background: var(--brand-navy) !important; box-shadow: 0 10px 25px rgb(15 32 83 / 14%) !important; }
+.tool-entry__action { border-radius: .75rem !important; background: var(--brand-cream) !important; color: var(--brand-navy) !important; }
+
+@media (min-width: 1024px) {
+  .workspace-grid { grid-template-columns: minmax(0, 1fr) minmax(22rem, 27rem); }
+  .workspace-tools { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .workspace-tools > :first-child { grid-column: 1 / -1; }
+}
+@media (max-width: 639px) {
+  .workspace-page { padding-inline: 1rem; }
+  .workspace-intro { margin-block-end: 2rem; }
+  .project-dashboard { margin-inline: -.25rem; padding: 1rem; border-radius: 1rem; }
+  .workspace-actions > button { flex: 1 1 calc(50% - .25rem); justify-content: center; }
+  .workspace-card { padding: 1rem !important; border-radius: .9rem !important; }
+  .waste-presets { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  .waste-presets button:nth-child(2), .waste-presets button:nth-child(4), .waste-presets button:nth-child(7) { display: none; }
+  .result-panel { position: static; }
+}
+

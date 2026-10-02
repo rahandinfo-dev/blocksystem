@@ -34,14 +34,14 @@ export function CalculationOptions({
     onChange({ ...settings, ...patch });
   const currencyLabel = settings.currency === "USD" ? "USD" : "IQD";
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+    <section className="workspace-card p-5 sm:p-6">
       <h2 className="text-xl font-bold text-slate-950">
         {t("options.heading")}
       </h2>
       <div className="mt-5 grid gap-6 lg:grid-cols-2">
         <div>
           <p id="waste-preset-label" className="block font-bold">{t("options.waste")}</p>
-          <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4" role="group" aria-labelledby="waste-preset-label">
+          <div className="waste-presets mt-2 grid gap-2" role="group" aria-labelledby="waste-preset-label">
             {(["0", "3", "5", "7", "7.5", "10", "15", "custom"] as const).map((preset) => (
               <button
                 key={preset}

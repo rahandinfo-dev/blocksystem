@@ -63,8 +63,8 @@ export function ProjectDashboard() {
   const createProject = () => window.dispatchEvent(new CustomEvent("blocksystem:new-project"));
 
   return (
-    <section className="print:hidden mb-8" aria-labelledby="project-dashboard-title">
-      <div className="flex flex-col gap-4 border-b border-[#0F2053]/15 pb-6 sm:flex-row sm:items-end sm:justify-between">
+    <section className="project-dashboard print:hidden" aria-labelledby="project-dashboard-title">
+      <div className="project-dashboard__header flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 id="project-dashboard-title" className="text-2xl font-bold text-[#0F2053] sm:text-3xl">{t("projects.heading")}</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{t("projects.dashboardDescription")}</p>
@@ -83,7 +83,7 @@ export function ProjectDashboard() {
           onChange={(event) => setQuery(event.target.value)}
           placeholder={t("projects.searchPlaceholder")}
           aria-label={t("projects.search")}
-          className="min-h-11 w-full rounded-lg border border-slate-300 bg-white py-2 pe-3 ps-10 text-sm text-slate-900 outline-none transition focus:border-[#0F2053] focus:ring-2 focus:ring-[#0F2053]/15"
+          className="project-dashboard__search min-h-11 w-full border py-2 pe-3 ps-10 text-sm text-slate-900 outline-none transition focus:border-[#0F2053] focus:ring-2 focus:ring-[#0F2053]/15"
         />
       </div>
 
@@ -107,7 +107,7 @@ export function ProjectDashboard() {
             const rooms = roomCount(project);
             const menuIsOpen = openMenuId === project.id;
             return (
-              <article key={project.id} className="relative flex min-w-0 flex-col rounded-xl border border-slate-200 bg-white p-4">
+              <article key={project.id} className="project-dashboard__card relative flex min-w-0 flex-col rounded-xl border border-slate-200 bg-white p-4">
                 <div className="flex min-w-0 items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h3 className="truncate font-bold text-[#0F2053]" title={project.name}>{project.name}</h3>

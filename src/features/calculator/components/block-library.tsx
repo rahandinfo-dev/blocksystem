@@ -21,7 +21,7 @@ export function BlockLibrary({ settings, onChange, showValidation }: Props) {
   const invalid = (value: number) => showValidation && !(value > 0);
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+    <section className="workspace-card p-5 sm:p-6">
       <div className="flex items-center gap-2">
         <Ruler size={20} className="text-amber-700" />
         <h2 className="text-xl font-bold text-slate-950">{t("blocks.heading")}</h2>

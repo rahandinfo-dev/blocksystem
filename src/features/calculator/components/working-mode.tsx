@@ -10,15 +10,15 @@ export function WorkingMode({ mode, onChange }: WorkingModeProps) {
   const { t } = useI18n();
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" aria-labelledby="working-mode-heading">
+    <section className="workspace-card p-5" aria-labelledby="working-mode-heading">
       <h2 id="working-mode-heading" className="font-bold text-slate-950">{t("workMode.heading")}</h2>
       <p className="mt-1 text-xs leading-5 text-slate-500">{t("workMode.description")}</p>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+      <div className="segmented-control mt-3">
         <button
           type="button"
           onClick={() => onChange("quick")}
           aria-pressed={mode === "quick"}
-          className={`min-h-16 rounded-lg border p-3 text-start ${mode === "quick" ? "border-amber-600 bg-amber-50" : "border-slate-200"}`}
+          className="segment"
         >
           <span className="block font-semibold">{t("workMode.quick")}</span>
           <span className="mt-1 block text-xs font-normal leading-5 text-slate-600">{t("workMode.quickDescription")}</span>
@@ -27,7 +27,7 @@ export function WorkingMode({ mode, onChange }: WorkingModeProps) {
           type="button"
           onClick={() => onChange("advanced")}
           aria-pressed={mode === "advanced"}
-          className={`min-h-16 rounded-lg border p-3 text-start ${mode === "advanced" ? "border-amber-600 bg-amber-50" : "border-slate-200"}`}
+          className="segment"
         >
           <span className="block font-semibold">{t("workMode.advanced")}</span>
           <span className="mt-1 block text-xs font-normal leading-5 text-slate-600">{t("workMode.advancedDescription")}</span>
