@@ -22,7 +22,8 @@ type Key =
   | "options.jointDescription"
   | "options.jointCalculationNote"
   | "options.mortarCostDescription"
-  | "options.materialCostDescription";
+  | "options.materialCostDescription"
+  | "workspace.autoSavedStatus";
 
 const en: Record<Key, string> = {
   "blocks.heading": "Block",
@@ -47,6 +48,7 @@ const en: Record<Key, string> = {
   "options.jointCalculationNote": "Used for the estimated row count.",
   "options.mortarCostDescription": "Included when estimating the total mortar cost for this project.",
   "options.materialCostDescription": "These entered extra costs are included in the project's total cost estimate.",
+  "workspace.autoSavedStatus": "Saved automatically ✓",
 };
 
 const ku: Record<Key, string> = {
@@ -72,6 +74,7 @@ const ku: Record<Key, string> = {
   "options.jointCalculationNote": "بۆ خەمڵاندنی ژمارەی ڕیزەکان بەکاردێت.",
   "options.mortarCostDescription": "بۆ خەمڵاندنی تێچووی مۆرتەری پێویست لە پڕۆژە بەکاردێت.",
   "options.materialCostDescription": "ئەم نرخانە لە خەمڵاندنی کۆی تێچووی پڕۆژەدا بەکاردێن.",
+  "workspace.autoSavedStatus": "خۆکارانە پاشەکەوت کرا ✓",
 };
 
 const ar: Record<Key, string> = {
@@ -97,6 +100,7 @@ const ar: Record<Key, string> = {
   "options.jointCalculationNote": "تستخدم لتقدير عدد الصفوف.",
   "options.mortarCostDescription": "تدخل في تقدير تكلفة المونة الكلية لهذا المشروع.",
   "options.materialCostDescription": "تدخل هذه التكاليف الإضافية في تقدير التكلفة الكلية للمشروع.",
+  "workspace.autoSavedStatus": "تم الحفظ تلقائياً ✓",
 };
 
 export const projectSettingsMessages: Record<Language, Record<Key, string>> = {

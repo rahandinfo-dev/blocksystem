@@ -4,7 +4,6 @@ import type {
   SavedProject,
   SaveKind,
   WorkspaceActivity,
-  WorkspaceNotification,
   WorkspacePreferences,
 } from "@/features/calculator/types";
 import {
@@ -22,7 +21,6 @@ const storageKey = "yek-block-projects-v1";
 const recoveryKey = "yek-block-recovery-v1";
 const versionsKey = "blocksystem:project-versions:v1";
 const favoritesKey = "blocksystem:favorites:v1";
-const notificationsKey = "blocksystem:notifications:v1";
 const activityKey = "blocksystem:activity:v1";
 const preferencesKey = "blocksystem:preferences:v1";
 const recentSearchesKey = "blocksystem:recent-searches:v1";
@@ -153,37 +151,6 @@ function addGlobalActivity(
     projectName: "Workspace",
   };
   write(activityKey, [activity, ...getWorkspaceActivity()].slice(0, 80));
-}
-
-export function getWorkspaceNotifications(): WorkspaceNotification[] {
-  return read<WorkspaceNotification[]>(notificationsKey, []).filter(
-    (item) => typeof item?.id === "string" && typeof item?.title === "string",
-  );
-}
-export function addWorkspaceNotification(
-  notification: Omit<WorkspaceNotification, "id" | "createdAt" | "read">,
-): WorkspaceNotification | null {
-  const next: WorkspaceNotification = {
-    ...notification,
-    id: makeId("notice"),
-    createdAt: new Date().toISOString(),
-    read: false,
-  };
-  return write(
-    notificationsKey,
-    [next, ...getWorkspaceNotifications()].slice(0, 80),
-  )
-    ? next
-    : null;
-}
-export function markNotificationsRead(ids?: string[]) {
-  const selected = ids ? new Set(ids) : null;
-  return write(
-    notificationsKey,
-    getWorkspaceNotifications().map((notice) =>
-      !selected || selected.has(notice.id) ? { ...notice, read: true } : notice,
-    ),
-  );
 }
 
 export function getFavorites(): string[] {
@@ -424,7 +391,7 @@ export function restoreWorkspaceBackup(raw: unknown): boolean {
   }
 }
 
-export function duplicateProject(project: SavedProject): SavedProject | null {
+export function duplicateProject(project: SavedProject, copySuffix = "copy"): SavedProject | null {
   const copy = clone(project.data);
   let sequence = 0;
   const nextId = (prefix: string) =>
@@ -493,7 +460,7 @@ export function duplicateProject(project: SavedProject): SavedProject | null {
         : undefined,
     };
   }
-  copy.metadata.projectName = `${project.name} (copy)`;
+  copy.metadata.projectName = `${project.name} — ${copySuffix.trim() || "copy"}`;
   return saveProject(copy);
 }
 export function renameSavedProject(

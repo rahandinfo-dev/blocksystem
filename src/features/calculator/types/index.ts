@@ -300,16 +300,6 @@ export interface ProjectVersion {
   data: CalculatorProjectData;
 }
 
-export interface WorkspaceNotification {
-  id: string;
-  createdAt: string;
-  title: string;
-  detail?: string;
-  level: "success" | "error" | "info";
-  read: boolean;
-  persistent: boolean;
-}
-
 export interface WorkspaceActivity {
   id: string;
   createdAt: string;

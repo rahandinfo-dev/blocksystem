@@ -4,6 +4,7 @@ import { Copy, FolderOpen, MoreHorizontal, Pencil, Plus, Search, Trash2 } from "
 import { useEffect, useMemo, useState } from "react";
 import type { SavedProject } from "@/features/calculator/types";
 import { useI18n } from "@/lib/i18n";
+import { matchesProjectSearch } from "@/lib/project-search";
 import { deleteSavedProject, duplicateProject, getSavedProjects, renameSavedProject, subscribeToSavedProjects } from "@/lib/project-storage";
 
 function roomCount(project: SavedProject) {
@@ -29,9 +30,8 @@ export function ProjectDashboard() {
   }, []);
 
   const visibleProjects = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase();
     return projects
-      .filter((project) => !normalizedQuery || project.name.toLocaleLowerCase().includes(normalizedQuery))
+      .filter((project) => matchesProjectSearch(project, query))
       .sort((left, right) => new Date(right.savedAt).getTime() - new Date(left.savedAt).getTime());
   }, [projects, query]);
 
@@ -48,7 +48,7 @@ export function ProjectDashboard() {
   };
 
   const duplicateSavedProject = (project: SavedProject) => {
-    if (!duplicateProject(project)) setMessage(t("projects.saveFailed"));
+    if (!duplicateProject(project, t("projects.copySuffix"))) setMessage(t("projects.saveFailed"));
     setOpenMenuId(null);
     refresh();
   };

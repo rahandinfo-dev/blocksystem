@@ -36,7 +36,7 @@ import { SavedProjects } from "./saved-projects";
 import { WallPreview } from "./wall-preview";
 import { WallsEditor } from "./walls-editor";
 import { useI18n } from "@/lib/i18n";
-import { addWorkspaceNotification, getActiveProjectId, getWorkspacePreferences, persistProject, setActiveProjectId } from "@/lib/project-storage";
+import { getActiveProjectId, getWorkspacePreferences, persistProject, setActiveProjectId } from "@/lib/project-storage";
 import { WorkspaceConsole } from "./workspace-console";
 import { ScenarioComparison } from "./scenario-comparison";
 import { BackupRecovery } from "./backup-recovery";
@@ -163,7 +163,6 @@ export function Calculator() {
     saveInFlight.current = false;
     if (!saved.ok) {
       setSaveState("failed");
-      addWorkspaceNotification({ title: t("workspace.failed"), detail: t("workspace.saveFailed"), level: "error", persistent: true });
       return;
     }
     activeProjectRef.current = saved.project.id;
@@ -172,8 +171,7 @@ export function Calculator() {
     const unchangedSinceSave = JSON.stringify(dataRef.current) === fingerprint;
     setIsDirty(!unchangedSinceSave);
     setSaveState(unchangedSinceSave ? "saved" : "unsaved");
-    if (kind === "manual") addWorkspaceNotification({ title: t("workspace.saveSuccess"), level: "success", persistent: false });
-  }, [t]);
+  }, []);
   useEffect(() => {
     if (!isDirty) return;
     const enabled = getWorkspacePreferences().autosave;
@@ -515,12 +513,8 @@ export function Calculator() {
   return (
     <div className="space-y-6">
       <WorkspaceConsole
-        data={data}
-        activeProjectId={activeProjectId}
         saveState={saveState}
         onSave={() => saveWorkspace("manual")}
-        onNew={newWorkspaceProject}
-        onOpen={loadWorkspaceProject}
       />
       <div className="print:hidden flex flex-wrap justify-end gap-2">
         <button type="button" onClick={undo} disabled={past.length === 0} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-45"><Undo2 size={18} /> گەڕاندنەوە</button>

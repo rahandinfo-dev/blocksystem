@@ -8,7 +8,8 @@ type Key =
   | "projects.actions"
   | "projects.emptyDashboardTitle"
   | "projects.emptyDashboardDescription"
-  | "projects.noResults";
+  | "projects.noResults"
+  | "projects.copySuffix";
 
 const en: Record<Key, string> = {
   "projects.dashboardDescription": "Manage your projects and keep your work moving.",
@@ -19,6 +20,7 @@ const en: Record<Key, string> = {
   "projects.emptyDashboardTitle": "There are no projects yet",
   "projects.emptyDashboardDescription": "Create your first project and get started.",
   "projects.noResults": "No projects match your search.",
+  "projects.copySuffix": "Copy",
 };
 
 const ku: Record<Key, string> = {
@@ -30,6 +32,7 @@ const ku: Record<Key, string> = {
   "projects.emptyDashboardTitle": "هێشتا هیچ پڕۆژەیەکت نییە",
   "projects.emptyDashboardDescription": "یەکەم پڕۆژەت دروست بکە و دەست بە کار بکە.",
   "projects.noResults": "هیچ پڕۆژەیەک بۆ گەڕانەکەت نەدۆزرایەوە.",
+  "projects.copySuffix": "کۆپی",
 };
 
 const ar: Record<Key, string> = {
@@ -41,6 +44,7 @@ const ar: Record<Key, string> = {
   "projects.emptyDashboardTitle": "لا توجد مشاريع بعد",
   "projects.emptyDashboardDescription": "أنشئ مشروعك الأول وابدأ العمل.",
   "projects.noResults": "لا توجد مشاريع مطابقة لبحثك.",
+  "projects.copySuffix": "نسخة",
 };
 
 export const projectDashboardMessages: Record<Language, Record<Key, string>> = {
