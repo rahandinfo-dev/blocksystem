@@ -51,7 +51,19 @@ test("calculates the documented room, door, window, and 5% waste example", () =>
 test("handles no openings and preset/custom waste values", () => {
   assert.equal(validResult(calculate({ wastePercentage: 0 })).recommendedBlocks, 700);
   assert.equal(validResult(calculate({ wastePercentage: 10 })).recommendedBlocks, 770);
+  assert.equal(validResult(calculate({ wastePercentage: 15 })).recommendedBlocks, 805);
   assert.equal(validResult(calculate({ wastePercentage: 7.5 })).recommendedBlocks, 753);
+});
+
+test("applies the waste allowance once to the whole-block purchasing base", () => {
+  const result = validResult(calculate({
+    mode: "walls",
+    wastePercentage: 5,
+    units: [{ id: "wall", name: "Wall", kind: "wall", length: 1.7, height: 2, doors: [], windows: [] }],
+  }));
+  assert.equal(result.requiredBlocks, 43);
+  assert.equal(result.recommendedBlocks, Math.ceil(result.requiredBlocks * 1.05));
+  assert.equal(result.wasteBlocks, result.recommendedBlocks - result.requiredBlocks);
 });
 test("aggregates multiple rooms and calculates wall mode", () => {
   const rooms = validResult(calculate({ units: [
@@ -90,6 +102,22 @@ test("handles included walls, extra deductions, row estimates, and cost extras",
   assert.equal(result.units[0].estimatedBlocksPerRow, 10);
   assert.equal(result.units[0].hasCutEstimate, false);
   assert.equal(result.cost?.grandTotal, result.recommendedBlocks * 1000 + 75000);
+});
+
+test("calculates configured cost components without requiring a block price", () => {
+  const result = validResult(calculate({
+    unitPrice: undefined,
+    costExtras: { transportCost: 100, laborCost: 200, mortarCost: 300, otherCost: 400 },
+  }));
+  assert.equal(result.cost?.recommendedTotalCost, 0);
+  assert.equal(result.cost?.grandTotal, 1000);
+});
+
+test("rejects malformed, NaN, and infinite engineering inputs", () => {
+  assert.equal(calculate({ wastePercentage: Number.NaN }).isValid, false);
+  assert.equal(calculate({ wastePercentage: Infinity }).isValid, false);
+  assert.equal(calculate({ unitPrice: Infinity }).isValid, false);
+  assert.equal(calculate({ costExtras: { laborCost: Number.NaN } }).isValid, false);
 });
 
 test("migrates a version-one saved project without losing its calculation inputs", () => {

@@ -23,6 +23,9 @@ type Key =
   | "options.jointCalculationNote"
   | "options.mortarCostDescription"
   | "options.materialCostDescription"
+  | "options.wasteDescription"
+  | "results.blockCost"
+  | "results.estimatedMortar"
   | "workspace.autoSavedStatus";
 
 const en: Record<Key, string> = {
@@ -48,10 +51,16 @@ const en: Record<Key, string> = {
   "options.jointCalculationNote": "Used for the estimated row count.",
   "options.mortarCostDescription": "Included when estimating the total mortar cost for this project.",
   "options.materialCostDescription": "These entered extra costs are included in the project's total cost estimate.",
+  "options.wasteDescription": "Extra blocks for breakage, cutting, and loss during construction.",
+  "results.blockCost": "Block cost",
+  "results.estimatedMortar": "Estimated mortar",
   "workspace.autoSavedStatus": "Saved automatically ✓",
 };
 
 const ku: Record<Key, string> = {
+  "options.wasteDescription": "ڕێژەی زیادەی بلۆک بۆ قەرەبووکردنەوەی شکاندن، بڕین و لەدەستچوون لە کاتی کار.",
+  "results.blockCost": "تێچووی بلۆک",
+  "results.estimatedMortar": "خەمڵاندنی مۆرتەر",
   "blocks.heading": "بلۆک",
   "blocks.helper": "قەبارەی بلۆکی بەکارهاتوو لە پڕۆژەکەت هەڵبژێرە.",
   "workMode.heading": "دۆخی کارکردن",
@@ -78,6 +87,9 @@ const ku: Record<Key, string> = {
 };
 
 const ar: Record<Key, string> = {
+  "options.wasteDescription": "بلوك إضافي لتعويض الكسر والقص والفقد أثناء العمل.",
+  "results.blockCost": "تكلفة البلوك",
+  "results.estimatedMortar": "تقدير المونة",
   "blocks.heading": "بلوك",
   "blocks.helper": "اختر مقاس البلوك المستخدم في هذا المشروع.",
   "workMode.heading": "وضع العمل",

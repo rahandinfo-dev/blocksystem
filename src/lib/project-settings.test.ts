@@ -37,6 +37,7 @@ test("project settings labels are complete and use the clarified Kurdish terms",
 test("legacy project status values remain compatible with saved projects", () => {
   const data = createDefaultProject();
   data.metadata.status = "draft";
+  data.settings.wastePreset = "15";
   const migrated = migrateSavedProject({
     id: "project-settings-legacy",
     version: 4,
@@ -45,6 +46,7 @@ test("legacy project status values remain compatible with saved projects", () =>
   });
   assert.equal(migrated?.data.metadata.status, "draft");
   assert.equal(migrated?.data.metadata.measurementSystem, "metric");
+  assert.equal(migrated?.data.settings.wastePreset, "15");
 });
 
 test("metric and imperial conversions remain accurate", () => {
@@ -96,6 +98,9 @@ test("local persistence creates, restores, isolates, duplicates, and deletes pro
 
 test("Quick and Advanced modes use their existing, distinct geometry mappings", () => {
   const project = createDefaultProject();
+  project.rooms[0].length = "6";
+  project.rooms[0].width = "4";
+  project.rooms[0].height = "2.8";
   const quick = projectNumericUnits(project);
   assert.equal(quick.length, 1);
   assert.equal(quick[0]?.kind, "room");
@@ -105,6 +110,14 @@ test("Quick and Advanced modes use their existing, distinct geometry mappings", 
   assert.equal(advanced.length, 4);
   assert.ok(advanced.every((unit) => unit.kind === "wall"));
   assert.ok(advanced.every((unit) => "structuralDeductions" in unit));
+
+  const quickResult = calculateProject({ mode: project.mode, units: quick, block: blockDefinitions[1], wastePercentage: 5 });
+  const advancedResult = calculateProject({ mode: project.mode, units: advanced, block: blockDefinitions[1], wastePercentage: 5 });
+  assert.ok(quickResult.isValid && advancedResult.isValid);
+  if (!quickResult.isValid || !advancedResult.isValid) return;
+  assert.equal(advancedResult.result.grossWallArea, quickResult.result.grossWallArea);
+  assert.equal(advancedResult.result.netWallArea, quickResult.result.netWallArea);
+  assert.equal(advancedResult.result.recommendedBlocks, quickResult.result.recommendedBlocks);
 });
 
 test("block presets and mortar calculations retain their established behavior", () => {

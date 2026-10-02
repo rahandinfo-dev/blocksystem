@@ -2,7 +2,7 @@ export type CalculationMode = "rooms" | "walls";
 
 export type BlockId = "10cm" | "20cm" | "30cm" | "custom";
 
-export type WastePreset = "0" | "3" | "5" | "7" | "10" | "custom";
+export type WastePreset = "0" | "3" | "5" | "7" | "10" | "15" | "custom";
 
 import type { CurrencyCode } from "@/lib/currency";
 import type { AreaUnit, LengthUnit, VolumeUnit } from "@/lib/units";

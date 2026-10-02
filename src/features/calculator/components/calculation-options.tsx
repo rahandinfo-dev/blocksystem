@@ -40,8 +40,9 @@ export function CalculationOptions({
       </h2>
       <div className="mt-5 grid gap-6 lg:grid-cols-2">
         <div>
-          <label className="block font-bold">{t("options.waste")}</label>
+          <label htmlFor="waste-preset" className="block font-bold">{t("options.waste")}</label>
           <select
+            id="waste-preset"
             value={settings.wastePreset}
             onChange={(event) =>
               update({
@@ -56,8 +57,10 @@ export function CalculationOptions({
             <option value="5">5%</option>
             <option value="7">{t("options.waste7")}</option>
             <option value="10">10%</option>
+            <option value="15">15%</option>
             <option value="custom">{t("options.customWaste")}</option>
           </select>
+          <p className="mt-1 text-xs leading-5 text-slate-500">{t("options.wasteDescription")}</p>
           {settings.wastePreset === "custom" ? (
             <div className="mt-3">
               <NumberField
@@ -75,10 +78,11 @@ export function CalculationOptions({
             <Coins size={19} className="text-amber-700" />
             <h3 className="font-bold">{t("options.cost")}</h3>
           </div>
-          <label className="mb-2 mt-2 block text-sm font-semibold">
+          <label htmlFor="currency" className="mb-2 mt-2 block text-sm font-semibold">
             {t("common.currency")}
           </label>
           <select
+            id="currency"
             value={settings.currency}
             onChange={(event) =>
               update({

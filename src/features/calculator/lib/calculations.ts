@@ -10,6 +10,13 @@ function isPositiveFinite(value: number): boolean {
   return Number.isFinite(value) && value > 0;
 }
 
+/** Avoid ordering an extra block solely because of binary floating-point noise. */
+const PURCHASE_ROUNDING_TOLERANCE = 1e-9;
+
+function ceilPurchasableBlocks(value: number): number {
+  return Math.ceil(value - PURCHASE_ROUNDING_TOLERANCE);
+}
+
 function isValidOpening(opening: NumericOpening): boolean {
   return (
     isPositiveFinite(opening.width) &&
@@ -117,9 +124,11 @@ export function calculateProject(input: ProjectCalculationInput): CalculationRes
   const netWallArea = results.reduce((total, result) => total + result.netWallArea, 0);
   const blockFaceArea = (block.lengthCm / 100) * (block.heightCm / 100);
   const rawBlockCount = netWallArea / blockFaceArea;
-  const requiredBlocks = Math.ceil(rawBlockCount);
-  const wasteBlocks = Math.ceil((requiredBlocks * wastePercentage) / 100);
-  const recommendedBlocks = requiredBlocks + wasteBlocks;
+  const requiredBlocks = ceilPurchasableBlocks(rawBlockCount);
+  // `requiredBlocks` is the purchasable base quantity. Apply the allowance
+  // once to that whole-block quantity, then round only the final order.
+  const recommendedBlocks = ceilPurchasableBlocks(requiredBlocks * (1 + wastePercentage / 100));
+  const wasteBlocks = recommendedBlocks - requiredBlocks;
 
   if (![grossWallArea, netWallArea, blockFaceArea, rawBlockCount, requiredBlocks, recommendedBlocks].every(Number.isFinite)) {
     return { isValid: false, error: "invalid-block" };
@@ -143,21 +152,21 @@ export function calculateProject(input: ProjectCalculationInput): CalculationRes
       recommendedBlocks,
       units: results,
       cost:
-        unitPrice === undefined
+        unitPrice === undefined && !extraCosts.some((value) => (value ?? 0) > 0)
           ? undefined
           : {
               currency,
               exchangeRateIqdPerUsd: currency === "USD" && Number.isFinite(exchangeRateIqdPerUsd) && (exchangeRateIqdPerUsd ?? 0) > 0 ? exchangeRateIqdPerUsd : undefined,
-              unitPrice,
-              baseBlockCost: requiredBlocks * unitPrice,
-              wasteCost: wasteBlocks * unitPrice,
-              recommendedTotalCost: recommendedBlocks * unitPrice,
+              unitPrice: unitPrice ?? 0,
+              baseBlockCost: requiredBlocks * (unitPrice ?? 0),
+              wasteCost: wasteBlocks * (unitPrice ?? 0),
+              recommendedTotalCost: recommendedBlocks * (unitPrice ?? 0),
               transportCost: costExtras?.transportCost ?? 0,
               laborCost: costExtras?.laborCost ?? 0,
               mortarCost: costExtras?.mortarCost ?? 0,
               otherCost: costExtras?.otherCost ?? 0,
               otherCostLabel: costExtras?.otherCostLabel,
-              grandTotal: recommendedBlocks * unitPrice + (costExtras?.transportCost ?? 0) + (costExtras?.laborCost ?? 0) + (costExtras?.mortarCost ?? 0) + (costExtras?.otherCost ?? 0),
+              grandTotal: recommendedBlocks * (unitPrice ?? 0) + (costExtras?.transportCost ?? 0) + (costExtras?.laborCost ?? 0) + (costExtras?.mortarCost ?? 0) + (costExtras?.otherCost ?? 0),
             },
       mortar:
         mortarConsumptionM3PerM2 === undefined

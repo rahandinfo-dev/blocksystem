@@ -326,8 +326,10 @@ export function Calculator() {
       }),
     [data, numericUnits, selectedBlock, waste],
   );
-  const result =
-    hasCalculated && calculation.isValid ? calculation.result : undefined;
+  // Calculation is pure and memoized above, so a valid change is reflected
+  // immediately. `hasCalculated` is retained only to avoid showing errors
+  // before the user has asked the form to validate incomplete input.
+  const result = calculation.isValid ? calculation.result : undefined;
   const error =
     hasCalculated && !calculation.isValid
       ? t(errorMessageKeys[calculation.error])
