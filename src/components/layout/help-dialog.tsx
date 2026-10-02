@@ -11,6 +11,8 @@ import {
   X,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { useI18n } from "@/lib/i18n";
+import { menuPageCopy } from "./menu-page-copy";
 import { PremiumModal } from "./premium-modal";
 
 type HelpCategory =
@@ -175,8 +177,10 @@ const faq: Array<[string, ReactNode]> = [
 ];
 
 export function HelpDialog({ onClose }: { onClose: () => void }) {
+  const { language } = useI18n();
   const [activeCategory, setActiveCategory] = useState<HelpCategory>("calculation");
   const active = categories.find((category) => category.id === activeCategory) ?? categories[0];
+  const copy = menuPageCopy[language];
 
   return (
     <PremiumModal id="help-dialog" label="یارمەتی و ڕێنمایی" labelledBy="help-dialog-title" onClose={onClose} panelClassName="max-w-4xl">
@@ -190,8 +194,12 @@ export function HelpDialog({ onClose }: { onClose: () => void }) {
             <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--brand-navy)]">ڕێنمایی کورت و کرداریک بۆ بەکارهێنانی هەموو بەشە سەرەکییەکان.</p>
           </div>
         </header>
-        <div id="help-modal-scroll" className="help-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6 sm:py-6">
-          <nav aria-label="بەشەکانی یارمەتی" className="flex gap-2 overflow-x-auto pb-2 lg:grid lg:grid-cols-4 lg:overflow-visible" role="tablist">
+        <div id="help-modal-scroll" className="info-page-body help-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6 sm:py-6">
+          <section className="help-quick-start" aria-labelledby="help-quick-start-title">
+            <div className="help-quick-start__heading"><p>{copy.quickStartDescription}</p><h3 id="help-quick-start-title">{copy.quickStart}</h3></div>
+            <ol className="help-quick-start__steps">{copy.steps.map((step, index) => <li key={step}><span>{String(index + 1).padStart(2, "0")}</span><p>{step}</p></li>)}</ol>
+          </section>
+          <nav aria-label="بەشەکانی یارمەتی" className="help-center-nav flex gap-2 overflow-x-auto pb-2 lg:grid lg:grid-cols-4 lg:overflow-visible" role="tablist">
             {categories.map((category) => {
               const Icon = category.icon;
               const selected = activeCategory === category.id;
@@ -200,19 +208,19 @@ export function HelpDialog({ onClose }: { onClose: () => void }) {
               </button>;
             })}
           </nav>
-          <section id="help-guide" role="tabpanel" className="mt-5 rounded-2xl border border-[var(--brand-border)] bg-white p-4 sm:p-5">
+          <section id="help-guide" role="tabpanel" className="help-center-panel mt-5 p-4 sm:p-5">
             <div className="border-b border-[var(--brand-border)] pb-4">
               <p className="text-xs font-bold text-[var(--brand-navy)]">ڕێنمایی بە پێی بەش</p>
               <h3 className="mt-1 text-lg font-extrabold text-[var(--brand-navy)] sm:text-xl">{active.title}</h3>
               <p className="mt-1 leading-7 text-[var(--brand-navy)]">{active.description}</p>
             </div>
             {active.steps ? <ol className="mt-4 space-y-3">
-              {active.steps.map((step, index) => <li key={step} className="flex items-start gap-3 rounded-xl border border-[var(--brand-border)] bg-[#fffdf5] p-3.5 sm:p-4">
+              {active.steps.map((step, index) => <li key={step} className="help-guide-step flex items-start gap-3 p-3.5 sm:p-4">
                 <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-[var(--brand-cream)] text-sm font-extrabold text-[var(--brand-navy)]">{String(index + 1).padStart(2, "0")}</span>
                 <span className="min-w-0 pt-0.5 leading-7 text-[var(--brand-navy)]">{step}</span>
               </li>)}
             </ol> : <div className="mt-4 space-y-3">
-              {faq.map(([question, answer]) => <details key={question} className="rounded-xl border border-[var(--brand-border)] bg-[#fffdf5] px-4 py-3">
+              {faq.map(([question, answer]) => <details key={question} className="help-faq-item px-4 py-3">
                 <summary className="cursor-pointer font-bold text-[var(--brand-navy)]">{question}</summary>
                 {typeof answer === "string" ? <p className="mt-3 border-t border-[var(--brand-border)] pt-3 leading-7 text-[var(--brand-navy)]">{answer}</p> : <div className="mt-3 border-t border-[var(--brand-border)] pt-3 leading-7 text-[var(--brand-navy)]">{answer}</div>}
               </details>)}

@@ -56,9 +56,9 @@ export function PremiumModal({
   }, []);
 
   return (
-    <div id={id} className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-6" role="dialog" aria-modal="true" aria-label={labelledBy ? undefined : label} aria-labelledby={labelledBy}>
+    <div id={id} className="info-modal fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-6" role="dialog" aria-modal="true" aria-label={labelledBy ? undefined : label} aria-labelledby={labelledBy}>
       <button id={`${id}-backdrop`} type="button" tabIndex={-1} aria-label="داخستن" onClick={onClose} className="absolute inset-0 cursor-default bg-[rgb(15_32_83_/_22%)] backdrop-blur-[2px]" />
-      <div ref={dialogRef} className={`premium-modal-panel relative flex max-h-[calc(100dvh-1.5rem)] w-full flex-col overflow-hidden rounded-[1.35rem] border border-[var(--brand-border)] bg-[#fffdf5] shadow-[0_18px_50px_rgb(15_32_83_/_18%)] sm:max-h-[calc(100dvh-3rem)] ${panelClassName}`.trim()}>
+      <div ref={dialogRef} className={`info-modal__panel premium-modal-panel relative flex max-h-[calc(100dvh-1.5rem)] w-full flex-col overflow-hidden sm:max-h-[calc(100dvh-3rem)] ${panelClassName}`.trim()}>
         {children}
       </div>
     </div>

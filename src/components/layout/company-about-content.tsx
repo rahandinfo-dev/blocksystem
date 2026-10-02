@@ -7,6 +7,8 @@ import {
   ShoppingCart,
   Smartphone,
 } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
+import { menuPageCopy } from "./menu-page-copy";
 
 const services = [
   { icon: ChartNoAxesCombined, title: "سیستەمی ژمێریاری و حسابات", text: "ئامرازە دیجیتاڵییەکان بۆ ڕێکخستن و چاودێریکردنی حسابات." },
@@ -27,9 +29,11 @@ const strengths = [
 ];
 
 export function CompanyAboutContent() {
+  const { language } = useI18n();
+  const copy = menuPageCopy[language];
   return (
-    <div className="space-y-6 text-[var(--brand-navy)]">
-      <section aria-labelledby="company-introduction">
+    <div className="info-document company-page space-y-6 text-[var(--brand-navy)]">
+      <section aria-labelledby="company-introduction" className="info-document__hero">
         <p className="text-xs font-bold">دەربارەی RekApps</p>
         <h3 id="company-introduction" className="mt-1 text-xl font-extrabold sm:text-2xl">تێکنەلۆجیا بۆ کارێکی ڕێکخراوتر</h3>
         <p className="mt-3 max-w-3xl leading-7">RekApps کۆمپانیایەکی گەشەپێدانی نەرمامێرە کە لە دروستکردنی سیستەمی مۆدێرن، زیرەک و کرداریک بۆ کاروبار و کۆمپانیاکان کار دەکات. ئامانجمان ئەوەیە کار ئاسانتر بکرێت، پرۆسەکان خێراتر بڕۆن و داتا بە شێوەیەکی ڕێکخراو بەکارهێنرێت.</p>
@@ -58,6 +62,10 @@ export function CompanyAboutContent() {
         <p className="mt-1 text-sm leading-6">بۆ گفتوگۆ دەربارەی سیستەمی کاروبار یان چارەسەری تایبەت، پەیوەندی بە RekApps بکە.</p>
         <a id="company-phone" href="tel:07762916675" dir="ltr" className="mt-3 inline-flex min-h-11 items-center rounded-xl border border-[var(--brand-navy)] bg-white px-4 py-2 text-xl font-extrabold tracking-wide transition hover:bg-[var(--brand-cream)]">07762916675</a>
       </section>
+      <footer className="developer-signature">
+        <p>{copy.developerSignature}</p>
+        <strong>RekApps</strong>
+      </footer>
     </div>
   );
 }

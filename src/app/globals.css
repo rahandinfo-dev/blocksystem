@@ -682,3 +682,66 @@ input[type="number"]::-webkit-outer-spin-button {
   .result-panel { position: static; }
 }
 
+/* Informational menu pages share a quieter editorial surface than the
+   calculator: the hierarchy comes from type, rules and rhythm—not card stacks. */
+.info-modal > button:first-child { background: rgb(15 32 83 / 42%); }
+.info-modal__panel { border: 1px solid var(--line-strong); border-radius: 1.25rem; background: var(--surface); box-shadow: 0 22px 56px rgb(15 32 83 / 22%); }
+.info-modal__panel > header { position: relative; padding: clamp(1.25rem, 3vw, 2rem) !important; border: 0 !important; background: var(--surface-muted) !important; }
+.info-modal__panel > header::after { position: absolute; inset-inline: clamp(1.25rem, 3vw, 2rem); bottom: 0; height: 1px; background: var(--line-soft); content: ""; }
+.info-modal__panel > header h2 { max-width: 42rem; font-size: clamp(1.5rem, 3vw, 2.2rem) !important; letter-spacing: -.035em; }
+.info-modal__panel > header p { color: var(--ink-muted) !important; }
+.info-modal__panel > header > button { order: 2; border-color: var(--line-strong) !important; border-radius: .75rem !important; background: var(--surface) !important; }
+.info-modal__panel > header > button:hover { background: var(--brand-navy) !important; color: var(--brand-cream) !important; }
+.info-page-body { padding-block: clamp(1.25rem, 3vw, 2.25rem) !important; }
+
+.info-document { max-width: 70rem; margin-inline: auto; }
+.info-document > section { padding-block: 1.5rem; border-block-start: 1px solid var(--line-soft) !important; }
+.info-document > section:first-child { padding-block-start: 0; border-block-start: 0 !important; }
+.info-document__hero { max-width: 48rem; }
+.info-document__hero > p:first-child { color: var(--brand-navy); font-size: .75rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.info-document__hero h3 { font-size: clamp(1.55rem, 3vw, 2.3rem); letter-spacing: -.035em; }
+.info-document__hero > p:last-child { color: var(--ink-muted); font-size: 1.02rem; }
+.about-page [class*="grid"] > article, .company-page [class*="grid"] > article { border-color: var(--line-soft) !important; border-radius: .85rem !important; background: transparent !important; box-shadow: none !important; }
+.about-page [class*="grid"] > article:hover, .company-page [class*="grid"] > article:hover { border-color: var(--line-strong) !important; background: var(--surface-muted) !important; }
+.about-page ul > li, .company-page ul > li { border-color: transparent !important; background: var(--surface-muted) !important; }
+
+.help-quick-start { padding-block-end: 1.75rem; }
+.help-quick-start__heading { display: grid; gap: .35rem; max-width: 36rem; }
+.help-quick-start__heading p { margin: 0; color: var(--ink-muted); font-size: .9rem; }
+.help-quick-start__heading h3 { margin: 0; color: var(--brand-navy); font-size: clamp(1.35rem, 3vw, 1.8rem); letter-spacing: -.025em; }
+.help-quick-start__steps { display: grid; gap: 0; margin-block: 1.25rem 0; padding: 0; list-style: none; border-inline-start: 1px solid var(--line-strong); }
+.help-quick-start__steps li { display: grid; grid-template-columns: 2.7rem minmax(0, 1fr); gap: .75rem; padding: .75rem 0 .75rem 1rem; }
+.help-quick-start__steps span { color: var(--brand-navy); font-size: .75rem; font-weight: 800; letter-spacing: .08em; }
+.help-quick-start__steps p { margin: 0; color: var(--brand-navy); font-weight: 700; line-height: 1.45; }
+.help-center-nav { padding-block: 1rem !important; border-block: 1px solid var(--line-soft); }
+.help-center-nav button { border-color: transparent !important; border-radius: .65rem !important; background: transparent !important; box-shadow: none !important; }
+.help-center-nav button:not(.help-category--active):hover { background: var(--surface-muted) !important; }
+.help-center-panel { border: 0 !important; border-radius: 0 !important; background: transparent !important; }
+.help-guide-step { border-block-end: 1px solid var(--line-soft); border-inline: 0 !important; border-radius: 0 !important; background: transparent !important; }
+.help-guide-step:last-child { border-block-end: 0; }
+.help-faq-item { border: 0 !important; border-block-end: 1px solid var(--line-soft) !important; border-radius: 0 !important; background: transparent !important; }
+.help-faq-item summary { min-height: 2.75rem; display: flex; align-items: center; }
+
+.contact-method-grid { gap: 1px !important; overflow: hidden; border: 1px solid var(--line-soft); border-radius: 1rem; background: var(--line-soft); }
+.contact-method { min-height: 16rem; border: 0 !important; border-radius: 0 !important; background: var(--surface) !important; box-shadow: none !important; }
+.contact-method:hover { background: var(--surface-muted) !important; }
+.contact-method > a:last-child { border-radius: .7rem !important; background: var(--brand-navy) !important; color: var(--brand-cream) !important; }
+.contact-page > section:last-child > div { border: 0 !important; border-radius: .85rem !important; background: var(--surface-muted) !important; }
+.developer-signature { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; padding-block: 1.25rem 0; border-block-start: 1px solid var(--line-soft); color: var(--ink-muted); font-size: .9rem; }
+.developer-signature p { max-width: 42rem; margin: 0; }
+.developer-signature strong { color: var(--brand-navy); font-size: 1rem; letter-spacing: .04em; }
+
+@media (min-width: 640px) {
+  .help-quick-start__steps { grid-template-columns: repeat(3, minmax(0, 1fr)); border-inline-start: 0; border-block-start: 1px solid var(--line-strong); }
+  .help-quick-start__steps li { min-height: 6.5rem; grid-template-columns: 1fr; padding: 1rem; border-inline-end: 1px solid var(--line-soft); }
+  .help-quick-start__steps li:nth-child(3n) { border-inline-end: 0; }
+}
+@media (max-width: 639px) {
+  .info-modal { padding: 0; align-items: end; }
+  .info-modal__panel { max-height: min(92dvh, 54rem) !important; border-radius: 1.15rem 1.15rem 0 0; }
+  .info-modal__panel > header { padding: 1.1rem 1rem !important; }
+  .info-page-body { padding-inline: 1rem !important; }
+  .contact-method-grid { grid-template-columns: 1fr !important; }
+  .contact-method { min-height: 14rem; }
+}
+

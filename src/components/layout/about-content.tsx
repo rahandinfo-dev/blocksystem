@@ -44,8 +44,8 @@ const workflow = [
 
 export function AboutContent() {
   return (
-    <div className="space-y-6 leading-7 text-[var(--brand-navy)]">
-      <section aria-labelledby="about-introduction">
+    <div className="info-document about-page space-y-6 leading-7 text-[var(--brand-navy)]">
+      <section aria-labelledby="about-introduction" className="info-document__hero">
         <p className="text-xs font-bold text-[var(--brand-navy)]">ناسنامەی سیستەم</p>
         <h3 id="about-introduction" className="mt-1 text-xl font-extrabold sm:text-2xl">سیستەمی بلۆکی براندی ڕێک</h3>
         <p className="mt-3 max-w-3xl text-[var(--brand-navy)]">ئەم ئەپە بۆ خێراتر، ئاسانتر و وردترکردنی حسابی ژوور و دیوار دروست کراوە. قەبارەکانت داخل بکە و بەبێ حسابی دەستی ئاڵۆز، ئەنجامی بلۆک و تێچوو بە شێوەیەکی ڕێکخراو و ڕوون وەربگرە.</p>

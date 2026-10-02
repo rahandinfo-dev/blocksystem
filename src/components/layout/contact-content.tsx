@@ -65,12 +65,12 @@ const guidance = [
 
 export function ContactContent() {
   return (
-    <div className="space-y-6 text-[var(--brand-navy)]">
+    <div className="info-document contact-page space-y-6 text-[var(--brand-navy)]">
       <section aria-labelledby="contact-methods-title">
         <div className="flex items-baseline justify-between gap-3"><h3 id="contact-methods-title" className="text-lg font-extrabold">ڕێگاکانی پەیوەندی</h3><span className="text-xs font-bold">RekApps</span></div>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div className="contact-method-grid mt-3 grid gap-3 sm:grid-cols-2">
           {contactMethods.map(({ icon: Icon, title, description, action, href, external, id }) => (
-            <article key={id} className="group flex min-h-48 flex-col rounded-2xl border border-[var(--brand-border)] bg-white p-4 transition hover:border-[var(--brand-navy)] hover:shadow-[0_8px_20px_rgb(15_32_83_/_8%)]">
+            <article key={id} className="contact-method group flex min-h-48 flex-col p-4 transition">
               <div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--brand-cream)] text-[var(--brand-navy)]"><Icon size={20} aria-hidden="true" /></span><div className="min-w-0"><h4 className="font-extrabold">{title}</h4><p className="mt-1 text-sm leading-6">{description}</p></div></div>
               {id === "contact-phone" ? <a id={id} href={href} dir="ltr" className="mt-4 w-fit rounded-lg border border-[var(--brand-navy)] bg-[#fffdf5] px-3 py-1.5 text-xl font-extrabold tracking-wide transition hover:bg-[var(--brand-cream)]">{rekAppsContact.phone}</a> : null}
               <a href={href} target={external ? "_blank" : undefined} rel={external ? "noreferrer" : undefined} aria-label={`${action}: ${title}`} className="mt-auto inline-flex min-h-11 w-fit items-center gap-2 rounded-xl bg-[var(--brand-navy)] px-3.5 py-2 text-sm font-extrabold text-[var(--brand-cream)] transition hover:bg-[var(--brand-navy-hover)] active:translate-y-px">
