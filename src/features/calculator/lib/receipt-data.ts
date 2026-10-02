@@ -315,12 +315,23 @@ export function createReceiptReference(date: Date, sequence = 1): string {
   return `REK-${datePart}-${String(Math.max(1, sequence)).padStart(3, "0")}`;
 }
 
-export function createReceiptFileName(scope: ReceiptScopeOption, date: Date): string {
+export function createReceiptFileName(
+  scope: ReceiptScopeOption,
+  date: Date,
+  projectName?: string,
+): string {
   const type = scope.kind === "room" ? "Room" : "Wall";
   const datePart = [date.getFullYear(), date.getMonth() + 1, date.getDate()]
     .map((part, index) => (index === 0 ? String(part) : String(part).padStart(2, "0")))
     .join("-");
-  return `REK-${type}-${datePart}.pdf`;
+  const safeProjectName = (projectName ?? "")
+    .trim()
+    .replace(/[^a-z0-9_-]+/gi, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 64);
+  return safeProjectName
+    ? `BlockSystem-${safeProjectName}-${datePart}.pdf`
+    : `BlockSystem-${type}-${datePart}.pdf`;
 }
 
 /**
@@ -358,7 +369,7 @@ export function buildReceiptData(
   return {
     reference: options.reference ?? createReceiptReference(generatedAt),
     generatedAt: generatedAt.toISOString(),
-    fileName: createReceiptFileName(scope.option, generatedAt),
+    fileName: createReceiptFileName(scope.option, generatedAt, data.metadata.projectName),
     scope: scope.option,
     projectName: data.metadata.projectName.trim() || undefined,
     ownerName: data.metadata.ownerName.trim() || undefined,

@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test src/features/calculator/lib/calculations.test.ts src/features/calculator/lib/camera-fit.test.ts src/features/calculator/lib/floor-plan.test.ts src/features/calculator/lib/project-geometry.test.ts src/features/calculator/lib/three-workspace.test.ts src/features/calculator/lib/receipt-pdf.test.ts src/lib/phase8.test.ts src/lib/phase9.test.ts src/lib/phase10.test.ts src/lib/direct-access.test.ts src/lib/project-settings.test.ts"
+    "test": "node --experimental-strip-types --test src/features/calculator/lib/calculations.test.ts src/features/calculator/lib/camera-fit.test.ts src/features/calculator/lib/floor-plan.test.ts src/features/calculator/lib/project-geometry.test.ts src/features/calculator/lib/share-result.test.ts src/features/calculator/lib/three-workspace.test.ts src/features/calculator/lib/receipt-pdf.test.ts src/lib/phase8.test.ts src/lib/phase9.test.ts src/lib/phase10.test.ts src/lib/direct-access.test.ts src/lib/project-settings.test.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

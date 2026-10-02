@@ -21,6 +21,7 @@ import { phase10Messages } from "@/lib/phase10-messages";
 import { phase14Messages } from "@/lib/phase14-messages";
 import { phase15Messages } from "@/lib/phase15-messages";
 import { geometryMessages } from "@/lib/geometry-messages";
+import { releaseMessages } from "@/lib/release-messages";
 
 export const languages = ["ku", "ar", "en-GB"] as const;
 export type Language = (typeof languages)[number];
@@ -246,9 +247,9 @@ const ar: Messages = {
 };
 
 const dictionaries: Record<Language, Messages> = {
-  ku: { ...ku, ...previewMessages.ku, ...workspaceMessages.ku, ...phase3Messages.ku, ...scenarioMessages.ku, ...projectDashboardMessages.ku, ...projectSettingsMessages.ku, ...phase8Messages.ku, ...phase9Messages.ku, ...phase10Messages.ku, ...phase14Messages.ku, ...phase15Messages.ku, ...geometryMessages.ku },
-  ar: { ...ar, ...previewMessages.ar, ...workspaceMessages.ar, ...phase3Messages.ar, ...scenarioMessages.ar, ...projectDashboardMessages.ar, ...projectSettingsMessages.ar, ...phase8Messages.ar, ...phase9Messages.ar, ...phase10Messages.ar, ...phase14Messages.ar, ...phase15Messages.ar, ...geometryMessages.ar },
-  "en-GB": { ...en, ...previewMessages["en-GB"], ...workspaceMessages["en-GB"], ...phase3Messages["en-GB"], ...scenarioMessages["en-GB"], ...projectDashboardMessages["en-GB"], ...projectSettingsMessages["en-GB"], ...phase8Messages["en-GB"], ...phase9Messages["en-GB"], ...phase10Messages["en-GB"], ...phase14Messages["en-GB"], ...phase15Messages["en-GB"], ...geometryMessages["en-GB"] },
+  ku: { ...ku, ...previewMessages.ku, ...workspaceMessages.ku, ...phase3Messages.ku, ...scenarioMessages.ku, ...projectDashboardMessages.ku, ...projectSettingsMessages.ku, ...phase8Messages.ku, ...phase9Messages.ku, ...phase10Messages.ku, ...phase14Messages.ku, ...phase15Messages.ku, ...geometryMessages.ku, ...releaseMessages.ku },
+  ar: { ...ar, ...previewMessages.ar, ...workspaceMessages.ar, ...phase3Messages.ar, ...scenarioMessages.ar, ...projectDashboardMessages.ar, ...projectSettingsMessages.ar, ...phase8Messages.ar, ...phase9Messages.ar, ...phase10Messages.ar, ...phase14Messages.ar, ...phase15Messages.ar, ...geometryMessages.ar, ...releaseMessages.ar },
+  "en-GB": { ...en, ...previewMessages["en-GB"], ...workspaceMessages["en-GB"], ...phase3Messages["en-GB"], ...scenarioMessages["en-GB"], ...projectDashboardMessages["en-GB"], ...projectSettingsMessages["en-GB"], ...phase8Messages["en-GB"], ...phase9Messages["en-GB"], ...phase10Messages["en-GB"], ...phase14Messages["en-GB"], ...phase15Messages["en-GB"], ...geometryMessages["en-GB"], ...releaseMessages["en-GB"] },
 };
 
 function interpolate(message: string, values?: MessageValues) {

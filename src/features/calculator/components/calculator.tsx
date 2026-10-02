@@ -43,6 +43,7 @@ import { WorkspaceConsole } from "./workspace-console";
 import { ScenarioComparison } from "./scenario-comparison";
 import { BackupRecovery } from "./backup-recovery";
 import { FloorPlanPreview } from "./floor-plan-workspace";
+import { ShareResult } from "./share-result";
 
 const errorMessageKeys: Record<CalculationErrorCode, string> = {
   "invalid-room": "errors.invalidRoom",
@@ -520,6 +521,7 @@ export function Calculator() {
           block={selectedBlock}
           result={result}
         />
+        <ShareResult data={data} result={result} />
         <button
           type="button"
           onClick={newWorkspaceProject}

@@ -301,7 +301,7 @@ test("builds a scoped room receipt from canonical metre inputs without recalcula
   assert.equal(receipt.result.units.length, 1);
   assert.equal(receipt.result.recommendedBlocks, 674);
   assert.equal(receipt.doors[0].dimensions, "90 cm × 210 cm");
-  assert.equal(receipt.fileName, "REK-Room-2026-09-28.pdf");
+  assert.equal(receipt.fileName, "BlockSystem-Room-2026-09-28.pdf");
   assert.equal(receipt.cost?.grandTotal, 674_000);
 });
 
@@ -350,7 +350,7 @@ test("builds a current wall-only receipt with USD pricing", () => {
   assert.equal(Number(receipt.result.grossWallArea.toFixed(2)), 16.8);
   assert.equal(Number(receipt.result.totalDoorArea.toFixed(2)), 1.89);
   assert.equal(receipt.cost?.currency, "USD");
-  assert.equal(receipt.fileName, "REK-Wall-2026-09-28.pdf");
+  assert.equal(receipt.fileName, "BlockSystem-Wall-2026-09-28.pdf");
 });
 
 test("keeps wall formulas deterministic across openings, waste, and imperial display conversion", () => {
