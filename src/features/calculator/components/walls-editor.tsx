@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from "lucide-react";
+import { Copy, Plus, Trash2 } from "lucide-react";
 
 import { LengthField } from "@/components/ui/length-field";
 import type { OpeningInput, WallInput } from "@/features/calculator/types";
@@ -9,6 +9,7 @@ interface WallsEditorProps {
   walls: WallInput[];
   onAdd: () => void;
   onRemove: (id: string) => void;
+  onDuplicate: (id: string) => void;
   onWallChange: (
     id: string,
     field: keyof Pick<WallInput, "name" | "length" | "height" | "thickness" | "lengthUnit" | "heightUnit" | "thicknessUnit" | "wallType" | "notes">,
@@ -60,6 +61,15 @@ export function WallsEditor(props: WallsEditorProps) {
             <article key={wall.id} className="rounded-xl border border-slate-200 p-4 sm:p-5">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <h3 className="font-bold text-slate-950">{option.name}</h3>
+                <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => props.onDuplicate(wall.id)}
+                  className="grid size-10 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                  aria-label={t("geometry.duplicateWall")}
+                >
+                  <Copy size={17} />
+                </button>
                 <button
                   type="button"
                   disabled={props.walls.length === 1}
@@ -69,6 +79,7 @@ export function WallsEditor(props: WallsEditorProps) {
                 >
                   <Trash2 size={18} />
                 </button>
+                </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                 <div className="form-field">

@@ -3,6 +3,7 @@ import { Calculator as CalculatorIcon, Redo2, RotateCcw, Undo2 } from "lucide-re
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import { blockDefinitions } from "@/features/calculator/config/blocks";
 import { calculateProject } from "@/features/calculator/lib/calculations";
+import { projectNumericUnits } from "@/features/calculator/lib/project-geometry";
 import {
   fitOpeningToBounds,
   resolveInputOpeningCollisions,
@@ -10,6 +11,7 @@ import {
 import {
   createDefaultProject,
   duplicateRoom,
+  duplicateWall,
   createOpening,
   createRoom,
   createWall,
@@ -52,25 +54,6 @@ const errorMessageKeys: Record<CalculationErrorCode, string> = {
   "invalid-price": "errors.invalidPrice",
   "invalid-mortar": "errors.invalidMortar",
 };
-function numericOpenings(openings: OpeningInput[]) {
-  return openings.map((opening) => ({
-    id: opening.id,
-    // LengthField persists canonical metres and only converts for display.
-    width: Number(opening.width),
-    height: Number(opening.height),
-    quantity: Number(opening.quantity),
-    wallId: opening.wallId || undefined,
-    horizontalPosition:
-      opening.horizontalPosition === ""
-        ? undefined
-        : Number(opening.horizontalPosition),
-    sillHeight:
-      opening.sillHeight === ""
-        ? undefined
-        : Number(opening.sillHeight),
-  }));
-}
-
 function resolveLists(
   lists: OpeningInput[][],
   wallLength: number,
@@ -152,7 +135,17 @@ export function Calculator() {
   };
   const undo = () => setPast((entries) => { const previous = entries.at(-1); if (!previous) return entries; setFuture((items) => [data, ...items].slice(0, 40)); setRawData(previous); setHasCalculated(false); return entries.slice(0, -1); });
   const redo = () => setFuture((entries) => { const next = entries[0]; if (!next) return entries; setPast((items) => [...items, data].slice(-40)); setRawData(next); setHasCalculated(false); return entries.slice(1); });
-  useEffect(() => { const shortcut = (event: KeyboardEvent) => { if (!(event.ctrlKey || event.metaKey)) return; if (event.key.toLowerCase() === "z") { event.preventDefault(); if (event.shiftKey) redo(); else undo(); } else if (event.key.toLowerCase() === "y") { event.preventDefault(); redo(); } }; window.addEventListener("keydown", shortcut); return () => window.removeEventListener("keydown", shortcut); });
+  useEffect(() => {
+    const shortcut = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+      if (!(event.ctrlKey || event.metaKey)) return;
+      if (event.key.toLowerCase() === "z") { event.preventDefault(); if (event.shiftKey) redo(); else undo(); }
+      else if (event.key.toLowerCase() === "y") { event.preventDefault(); redo(); }
+    };
+    window.addEventListener("keydown", shortcut);
+    return () => window.removeEventListener("keydown", shortcut);
+  });
   const saveWorkspace = useCallback((kind: "manual" | "autosave" = "manual") => {
     if (saveInFlight.current) return;
     saveInFlight.current = true;
@@ -224,7 +217,7 @@ export function Calculator() {
       data.settings.selectedBlockId,
     ],
   );
-  const numericUnits = useMemo(
+  /* Legacy duplicate mapper retained only as source context during the refactor.
     () =>
       data.mode === "rooms"
         ? data.settings.interfaceMode === "advanced"
@@ -289,7 +282,8 @@ export function Calculator() {
             wallAssignments: [{ id: wall.id, side: "front" as const }],
           })),
     [data],
-  );
+  ); */
+  const numericUnits = useMemo(() => projectNumericUnits(data), [data]);
   const waste =
     data.settings.wastePreset === "custom"
       ? Number(data.settings.customWastePercentage)
@@ -615,14 +609,24 @@ export function Calculator() {
                 }))
               }
               onRemove={(id) =>
-                setData((current) => ({
-                  ...current,
-                  walls:
-                    current.walls.length > 1
-                      ? current.walls.filter((wall) => wall.id !== id)
-                      : current.walls,
-                }))
+                {
+                  if (!window.confirm(t("geometry.deleteWallConfirm"))) return;
+                  setData((current) => ({
+                    ...current,
+                    walls:
+                      current.walls.length > 1
+                        ? current.walls.filter((wall) => wall.id !== id)
+                        : current.walls,
+                  }));
+                }
               }
+              onDuplicate={(id) => setData((current) => {
+                const source = current.walls.find((wall) => wall.id === id);
+                if (!source) return current;
+                const copy = duplicateWall(source);
+                const index = current.walls.findIndex((wall) => wall.id === id);
+                return { ...current, walls: [...current.walls.slice(0, index + 1), copy, ...current.walls.slice(index + 1)] };
+              })}
               onWallChange={updateWall}
               onOpeningAdd={(id, kind) => addOpening(id, kind, "walls")}
               onOpeningRemove={(id, kind, openingId) =>

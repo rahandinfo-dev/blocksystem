@@ -6,6 +6,22 @@ export function createOpening(wallId = ""): OpeningInput { return { id: createId
 function createRoomWall(name: string): RoomWallInput { return { id: createId("room-wall"), name, enabled: true, wallType: "interior", thickness: "0.2", thicknessUnit: "m", notes: "", doors: [], windows: [], otherOpenings: [], structuralDeductions: [] }; }
 export function createRoom(): RoomInput { return { id: createId("room"), name: "", length: "", width: "", height: "", lengthUnit: "m", widthUnit: "m", heightUnit: "m", doors: [], windows: [], walls: [createRoomWall("دیوار ١"), createRoomWall("دیوار ٢"), createRoomWall("دیوار ٣"), createRoomWall("دیوار ٤")] }; }
 export function createWall(): WallInput { return { id: createId("wall"), name: "", length: "", height: "", thickness: "0.2", lengthUnit: "m", heightUnit: "m", thicknessUnit: "m", wallType: "interior", notes: "", doors: [], windows: [] }; }
+/** Creates an independent standalone wall and re-keys every owned opening. */
+export function duplicateWall(source: WallInput): WallInput {
+  const fresh = createWall();
+  const copyOpening = (opening: OpeningInput) => ({
+    ...opening,
+    id: createId("opening"),
+    wallId: fresh.id,
+  });
+  return {
+    ...source,
+    id: fresh.id,
+    name: source.name ? `${source.name} copy` : "",
+    doors: source.doors.map(copyOpening),
+    windows: source.windows.map(copyOpening),
+  };
+}
 export function duplicateRoom(source: RoomInput): RoomInput {
   const fresh = createRoom();
   const wallIds = new Map(source.walls.map((wall, index) => [wall.id, fresh.walls[index]?.id ?? createId("room-wall")]));
