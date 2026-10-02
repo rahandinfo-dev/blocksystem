@@ -245,6 +245,7 @@ export function migrateSavedProject(value: unknown): SavedProject | null {
         settings.wastePreset === "3" ||
         settings.wastePreset === "5" ||
         settings.wastePreset === "7" ||
+        settings.wastePreset === "7.5" ||
         settings.wastePreset === "10" ||
         settings.wastePreset === "15" ||
         settings.wastePreset === "custom"

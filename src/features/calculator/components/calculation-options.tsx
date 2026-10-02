@@ -40,26 +40,20 @@ export function CalculationOptions({
       </h2>
       <div className="mt-5 grid gap-6 lg:grid-cols-2">
         <div>
-          <label htmlFor="waste-preset" className="block font-bold">{t("options.waste")}</label>
-          <select
-            id="waste-preset"
-            value={settings.wastePreset}
-            onChange={(event) =>
-              update({
-                wastePreset: event.target
-                  .value as CalculatorSettings["wastePreset"],
-              })
-            }
-            className="mt-2 h-12 w-full rounded-xl border border-slate-300 bg-white px-3"
-          >
-            <option value="0">0%</option>
-            <option value="3">{t("options.waste3")}</option>
-            <option value="5">5%</option>
-            <option value="7">{t("options.waste7")}</option>
-            <option value="10">10%</option>
-            <option value="15">15%</option>
-            <option value="custom">{t("options.customWaste")}</option>
-          </select>
+          <p id="waste-preset-label" className="block font-bold">{t("options.waste")}</p>
+          <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4" role="group" aria-labelledby="waste-preset-label">
+            {(["0", "3", "5", "7", "7.5", "10", "15", "custom"] as const).map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                aria-pressed={settings.wastePreset === preset}
+                onClick={() => update({ wastePreset: preset })}
+                className={`min-h-11 rounded-lg border px-2 text-sm font-bold transition ${settings.wastePreset === preset ? "border-[#0F2053] bg-[#0F2053] text-[#EDE6CC]" : "border-slate-300 bg-white text-[#0F2053] hover:bg-[#EDE6CC]/45"}`}
+              >
+                {preset === "custom" ? t("options.customWaste") : `${preset}%`}
+              </button>
+            ))}
+          </div>
           <p className="mt-1 text-xs leading-5 text-slate-500">{t("options.wasteDescription")}</p>
           {settings.wastePreset === "custom" ? (
             <div className="mt-3">

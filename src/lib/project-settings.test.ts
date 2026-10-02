@@ -49,6 +49,18 @@ test("legacy project status values remain compatible with saved projects", () =>
   assert.equal(migrated?.data.settings.wastePreset, "15");
 });
 
+test("the 7.5% waste preset survives project migration", () => {
+  const data = createDefaultProject();
+  data.settings.wastePreset = "7.5";
+  const migrated = migrateSavedProject({
+    id: "project-settings-seven-point-five",
+    version: 6,
+    savedAt: "2026-10-03T00:00:00.000Z",
+    data,
+  });
+  assert.equal(migrated?.data.settings.wastePreset, "7.5");
+});
+
 test("metric and imperial conversions remain accurate", () => {
   assert.equal(convertLength(1, "m", "ft"), 3.28083989501312);
   assert.equal(convertLength(12, "in", "ft"), 1);
