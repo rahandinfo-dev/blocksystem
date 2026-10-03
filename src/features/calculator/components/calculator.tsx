@@ -662,7 +662,7 @@ export function Calculator() {
           </button>
         </form>
         <div className="workspace-rail">
-          <ResultsDashboard result={result} error={error} />
+          <div className="result-panel-slot"><ResultsDashboard result={result} error={error} /></div>
           <WallPreview units={numericUnits} block={selectedBlock} />
         </div>
       </div>

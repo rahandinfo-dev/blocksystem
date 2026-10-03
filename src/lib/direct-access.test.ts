@@ -94,3 +94,18 @@ test("engineering fields use the shared compound control and responsive sticky-r
   assert.match(styles, /--unit-lane/);
   assert.match(styles, /@media \(max-width: 1023px\) \{ \.result-panel \{ position: static/);
 });
+
+test("calculation results have persistent desktop and mobile presentation paths", async () => {
+  const [calculator, results, styles] = await Promise.all([
+    readFile(source("features", "calculator", "components", "calculator.tsx"), "utf8"),
+    readFile(source("features", "calculator", "components", "results-dashboard.tsx"), "utf8"),
+    readFile(source("app", "globals.css"), "utf8"),
+  ]);
+  assert.match(calculator, /result-panel-slot/);
+  assert.match(results, /mobile-results-toggle/);
+  assert.match(results, /data-mobile-expanded/);
+  assert.match(styles, /@media \(min-width: 1024px\)/);
+  assert.match(styles, /position: fixed/);
+  assert.match(styles, /safe-area-inset-bottom/);
+  assert.match(styles, /@media print/);
+});

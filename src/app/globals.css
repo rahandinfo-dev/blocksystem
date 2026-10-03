@@ -682,6 +682,64 @@ input[type="number"]::-webkit-outer-spin-button {
   .result-panel { position: static; }
 }
 
+/* Persistent calculation results use the existing live result object. Large
+   screens reserve a rail for a viewport-fixed panel; narrower screens use a
+   compact, expandable bottom surface so form controls never disappear below it. */
+.mobile-results-toggle { display: none; }
+@media (min-width: 1024px) {
+  .workspace-grid { grid-template-columns: minmax(0, 1fr) clamp(20rem, 31vw, 27rem); }
+  .result-panel-slot { min-height: min(34rem, calc(100dvh - var(--app-header-height) - 1.75rem)); }
+  .result-panel {
+    position: fixed;
+    z-index: 25;
+    inset-inline-end: max(2rem, calc((100vw - 86rem) / 2 + 2rem));
+    top: calc(var(--app-header-height) + 1rem);
+    width: clamp(20rem, 31vw, 27rem);
+    max-height: calc(100dvh - var(--app-header-height) - 1.75rem);
+    overflow-y: auto;
+  }
+}
+@media (max-width: 1023px) {
+  .workspace-shell { padding-block-end: calc(10rem + env(safe-area-inset-bottom)); }
+  .result-panel-slot { display: contents; }
+  .result-panel {
+    position: fixed;
+    z-index: 40;
+    inset-inline: .5rem;
+    bottom: 0;
+    width: auto;
+    max-height: calc(100dvh - var(--app-header-height) - 1rem);
+    margin: 0;
+    padding: .75rem 1rem calc(.75rem + env(safe-area-inset-bottom)) !important;
+    overflow: hidden;
+    border-color: var(--line-strong) !important;
+    box-shadow: 0 -8px 22px rgb(15 32 83 / 15%) !important;
+  }
+  .result-panel[data-mobile-expanded="true"] { overflow-y: auto; }
+  .result-panel__heading { min-height: 2.75rem; padding-block-end: 0; border: 0; }
+  .result-panel__heading > span { display: none; }
+  .result-panel__heading h2 { font-size: .92rem; }
+  .mobile-results-toggle { display: grid; border: 1px solid var(--line-soft); background: var(--surface-muted); color: var(--brand-navy); }
+  .result-panel[data-mobile-expanded="false"] .mobile-results-toggle svg { transform: rotate(180deg); }
+  .result-panel__content { margin-block-start: .5rem; }
+  .result-panel:not([data-mobile-expanded="true"]) .result-panel__content > :not(.result-primary):not(.result-cost),
+  .result-panel:not([data-mobile-expanded="true"]) .result-panel__content > dl { display: none; }
+  .result-panel .result-primary { margin-block-start: 0; padding: .7rem .85rem; border-radius: .72rem; }
+  .result-panel .result-primary strong { margin-block-start: .15rem; font-size: 1.65rem; }
+  .result-panel .result-cost { margin-block-start: .45rem; padding: .55rem .85rem; border-radius: .72rem; }
+  .result-panel .result-cost p:last-child { font-size: 1rem; }
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  .result-panel { inset-inline: auto 1rem; width: min(34rem, calc(100vw - 2rem)); }
+  [dir="rtl"] .result-panel { inset-inline: 1rem auto; }
+}
+@media print {
+  .workspace-shell { padding-block-end: 0 !important; }
+  .result-panel { position: static !important; width: auto !important; max-height: none !important; overflow: visible !important; box-shadow: none !important; }
+  .mobile-results-toggle { display: none !important; }
+  .result-panel__content > * { display: block !important; }
+}
+
 /* Engineering control system: numeric input remains the primary visual lane;
    unit and currency context stays compact, predictable, and secondary. */
 :root { --app-header-height: 4.25rem; --control-height: 3.25rem; --unit-lane: 7rem; }
