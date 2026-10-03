@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, CheckCircle2, ChevronUp, WalletCards } from "lucide-react";
+import { AlertTriangle, CheckCircle2, WalletCards } from "lucide-react";
 import { useState } from "react";
 import type { CalculationResult } from "@/features/calculator/types";
 import { useI18n } from "@/lib/i18n";
@@ -17,7 +17,6 @@ export function ResultsDashboard({ result, error }: { result?: CalculationResult
   const { t, formatNumber } = useI18n();
   const [areaUnit, setAreaUnit] = useState<AreaUnit>("m²");
   const [volumeUnit, setVolumeUnit] = useState<VolumeUnit>("m³");
-  const [mobileExpanded, setMobileExpanded] = useState(false);
   const areas: Array<[string, number]> = result
     ? [[t("results.gross"), result.grossWallArea], [t("results.openings"), result.totalOpeningArea], [t("results.deductions"), result.totalStructuralDeductionArea], [t("results.net"), result.netWallArea]]
     : [];
@@ -33,15 +32,14 @@ export function ResultsDashboard({ result, error }: { result?: CalculationResult
     : [];
 
   return (
-    <aside className="result-panel workspace-card h-fit p-5 sm:p-6" data-mobile-expanded={mobileExpanded} aria-live="polite">
+    <aside className="result-panel workspace-card h-fit p-5 sm:p-6" aria-live="polite">
       <div className="result-panel__heading flex items-center gap-2">
         <span className="grid size-9 place-items-center rounded-lg bg-amber-100 text-amber-800"><CheckCircle2 size={20} /></span>
         <h2 className="text-xl font-bold text-slate-950">{t("results.heading")}</h2>
-        <button type="button" className="mobile-results-toggle ms-auto grid size-10 place-items-center rounded-lg" aria-label={t("results.heading")} aria-expanded={mobileExpanded} aria-controls="results-panel-content" onClick={() => setMobileExpanded((value) => !value)}><ChevronUp size={19} aria-hidden="true" /></button>
       </div>
       {error ? <div className="mt-5 flex gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert"><AlertTriangle size={19} /><p>{error}</p></div> : null}
       {!result && !error ? <p className="mt-5 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">{t("results.empty")}</p> : null}
-      {result ? <div id="results-panel-content" className="result-panel__content">
+      {result ? <div>
         <div className="result-primary"><p className="text-sm font-semibold">{t("results.recommended")}</p><strong>{formatNumber(result.recommendedBlocks, { maximumFractionDigits: 0 })}</strong></div>
         {result.cost && result.cost.grandTotal > 0 ? <div className="result-cost"><p className="text-sm font-semibold text-[#0F2053]">{t("results.totalCost")}</p><p className="mt-1 font-bold text-[#0F2053]" dir="ltr">{formatMoney(result.cost.grandTotal, result.cost.currency)}</p></div> : null}
         <div className="mb-2 flex items-center justify-between gap-3">

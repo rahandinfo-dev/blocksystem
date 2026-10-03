@@ -95,17 +95,17 @@ test("engineering fields use the shared compound control and responsive fixed-re
   assert.match(styles, /@media \(max-width: 1023px\) \{[\s\S]*?\.result-panel \{[\s\S]*?position: fixed/);
 });
 
-test("calculation results have persistent desktop and mobile presentation paths", async () => {
+test("calculation results stay viewport-fixed while preserving the preview slot", async () => {
   const [calculator, results, styles] = await Promise.all([
     readFile(source("features", "calculator", "components", "calculator.tsx"), "utf8"),
     readFile(source("features", "calculator", "components", "results-dashboard.tsx"), "utf8"),
     readFile(source("app", "globals.css"), "utf8"),
   ]);
   assert.match(calculator, /result-panel-slot/);
-  assert.match(results, /mobile-results-toggle/);
-  assert.match(results, /data-mobile-expanded/);
+  assert.doesNotMatch(results, /mobile-results-toggle|data-mobile-expanded/);
   assert.match(styles, /@media \(min-width: 1024px\)/);
   assert.match(styles, /position: fixed/);
-  assert.match(styles, /safe-area-inset-bottom/);
+  assert.match(styles, /result-panel-slot \{ min-height/);
+  assert.match(styles, /safe-area-inset-top/);
   assert.match(styles, /@media print/);
 });
