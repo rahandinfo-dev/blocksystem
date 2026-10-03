@@ -41,7 +41,7 @@ export function NumberField({
   return (
     <div className="form-field">
       <label htmlFor={id} className="form-label">{label}</label>
-      <div className="relative">
+      <div className={`field-with-affix ${unit ? "field-with-affix--unit" : ""}`}>
         <input
           id={id}
           value={value}
@@ -50,10 +50,10 @@ export function NumberField({
           type="text"
           dir="ltr"
           aria-invalid={invalid}
-          className={`form-control form-control--numeric px-3 ${unit ? "pl-14" : ""} ${invalid ? "border-red-400" : ""}`}
+          className={`field-with-affix__input form-control form-control--numeric px-3 ${unit ? "pl-14" : ""} ${invalid ? "border-red-400" : ""}`}
         />
         {unit ? (
-          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-slate-500" dir="ltr">
+          <span className="field-affix pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-slate-500" dir="ltr">
             {unit}
           </span>
         ) : null}

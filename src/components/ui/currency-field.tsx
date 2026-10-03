@@ -51,7 +51,7 @@ export function CurrencyField({
   return (
     <div className="form-field">
       <label htmlFor={id} className="form-label">{label}</label>
-      <div className="relative">
+      <div className="field-with-affix field-with-affix--currency">
         <input
           ref={inputRef}
           id={id}
@@ -61,9 +61,9 @@ export function CurrencyField({
           aria-invalid={invalid}
           value={formatMoneyInput(value)}
           onChange={(event) => change(event.target.value, event.target.selectionStart)}
-          className={`form-control form-control--numeric px-3 pl-20 ${invalid ? "border-red-400" : ""}`}
+          className={`field-with-affix__input form-control form-control--numeric px-3 pl-20 ${invalid ? "border-red-400" : ""}`}
         />
-        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-slate-500" dir="ltr">
+        <span className="field-affix pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-slate-500" dir="ltr">
           {currencyLabel}
         </span>
       </div>

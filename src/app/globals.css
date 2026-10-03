@@ -682,6 +682,47 @@ input[type="number"]::-webkit-outer-spin-button {
   .result-panel { position: static; }
 }
 
+/* Engineering control system: numeric input remains the primary visual lane;
+   unit and currency context stays compact, predictable, and secondary. */
+:root { --app-header-height: 4.25rem; --control-height: 3.25rem; --unit-lane: 7rem; }
+.form-field { min-width: 0; }
+.form-label { margin-block-end: .45rem; color: var(--brand-navy); font-size: .78rem; font-weight: 800; line-height: 1.35; }
+.form-control, .app-select, select { min-height: var(--control-height); border: 1px solid var(--line-strong) !important; border-radius: .72rem !important; background-color: var(--surface) !important; color: var(--brand-navy) !important; font-size: .98rem; font-weight: 700; box-shadow: none !important; }
+.form-control::placeholder { color: color-mix(in srgb, var(--ink-muted) 68%, transparent); }
+.form-control:hover, .app-select:hover, select:hover { border-color: var(--brand-navy) !important; background-color: #fff !important; }
+.form-control:focus, .app-select:focus, select:focus { border-color: var(--brand-navy) !important; outline: 0; box-shadow: 0 0 0 3px rgb(15 32 83 / 15%) !important; }
+.form-control[aria-invalid="true"], .app-select[aria-invalid="true"] { border-color: #b42318 !important; background-color: #fff9f7 !important; }
+.form-control:disabled, .app-select:disabled { opacity: 1; border-color: var(--line-soft) !important; background: var(--surface-muted) !important; color: color-mix(in srgb, var(--brand-navy) 54%, transparent) !important; }
+
+.compound-field { display: grid; grid-template-columns: minmax(0, 1fr) var(--unit-lane); min-width: 0; min-height: var(--control-height); overflow: hidden; border: 1px solid var(--line-strong); border-radius: .72rem; background: var(--surface); transition: border-color 160ms ease, box-shadow 160ms ease; }
+.compound-field:hover { border-color: var(--brand-navy); }
+.compound-field:focus-within { border-color: var(--brand-navy); box-shadow: 0 0 0 3px rgb(15 32 83 / 15%); }
+.compound-field:has(.compound-field__value[aria-invalid="true"]) { border-color: #b42318; background: #fff9f7; }
+.compound-field__value { min-width: 0; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; font-size: 1.05rem; }
+.compound-field__value:focus { box-shadow: none !important; }
+.compound-field__unit { min-width: var(--unit-lane) !important; width: var(--unit-lane) !important; min-height: calc(var(--control-height) - 2px) !important; border: 0 !important; border-inline-start: 1px solid var(--line-soft) !important; border-radius: 0 !important; background-color: var(--surface-muted) !important; background-position: left .6rem center !important; padding-inline: .65rem 2.1rem !important; color: var(--ink-muted) !important; font-size: .83rem !important; font-weight: 800 !important; box-shadow: none !important; }
+[dir="ltr"] .compound-field__unit, .compound-field__unit[dir="ltr"] { background-position: right .6rem center !important; padding-inline: 2.1rem .65rem !important; }
+.field-with-affix { position: relative; min-width: 0; }
+.field-with-affix__input { width: 100%; }
+.field-affix { z-index: 1; color: var(--ink-muted) !important; font-size: .78rem !important; font-weight: 800; letter-spacing: .02em; }
+.field-with-affix--unit .field-with-affix__input { padding-inline-start: 3.8rem !important; }
+.field-with-affix--currency .field-with-affix__input { padding-inline-start: 4.9rem !important; }
+[dir="rtl"] .field-affix { inset-inline-start: .8rem; left: auto; right: .8rem; }
+[dir="rtl"] .field-with-affix--unit .field-with-affix__input { padding-inline: .8rem 3.8rem !important; }
+[dir="rtl"] .field-with-affix--currency .field-with-affix__input { padding-inline: .8rem 4.9rem !important; }
+
+.dimension-fields, .opening-fields, .opening-placement-fields { grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)) !important; }
+.opening-card--editor { padding: clamp(.9rem, 2vw, 1.2rem) !important; background: var(--surface) !important; }
+.opening-section-header { padding-block-end: .75rem; border-block-end: 1px solid var(--line-soft); }
+.opening-section-count { display: inline-grid; min-width: 1.45rem; min-height: 1.45rem; place-items: center; margin-inline-start: .35rem; border-radius: 999px; background: var(--surface-muted); color: var(--ink-muted); font-size: .72rem; vertical-align: middle; }
+.opening-card--editor > div:first-child { padding-block-end: .75rem; border-block-end: 1px solid var(--line-soft); }
+.opening-placement { margin-block-start: 1rem !important; border-color: var(--line-soft) !important; border-radius: .8rem !important; background: var(--surface-muted) !important; }
+.opening-placement > p { margin-block-end: 1rem !important; color: var(--ink-muted) !important; }
+
+.result-panel { top: calc(var(--app-header-height) + 1rem); max-height: calc(100dvh - var(--app-header-height) - 1.75rem); overflow-y: auto; overscroll-behavior: contain; }
+@media (max-width: 1023px) { .result-panel { position: static; max-height: none; overflow: visible; } }
+@media (max-width: 359px) { :root { --unit-lane: 6rem; } .compound-field__unit { font-size: .78rem !important; } }
+
 /* Informational menu pages share a quieter editorial surface than the
    calculator: the hierarchy comes from type, rules and rhythm—not card stacks. */
 .info-modal > button:first-child { background: rgb(15 32 83 / 42%); }

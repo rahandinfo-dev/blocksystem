@@ -105,8 +105,8 @@ export function OpeningsSection({
 
   return (
     <section className="border-t border-slate-200 pt-5">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-base font-bold text-slate-900">{text.heading}</h3>
+      <div className="opening-section-header flex items-center justify-between gap-3">
+        <h3 className="text-base font-bold text-slate-900">{text.heading} <span className="opening-section-count" dir="ltr">{openings.length}</span></h3>
         <button
           type="button"
           onClick={onAdd}
@@ -141,7 +141,7 @@ export function OpeningsSection({
               wall.height,
             );
           return (
-            <div key={opening.id} className="opening-card rounded-xl">
+            <div key={opening.id} className="opening-card opening-card--editor rounded-xl">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <span className="text-sm font-semibold text-slate-800">
                   {text.item} {index + 1}
@@ -155,7 +155,7 @@ export function OpeningsSection({
                   <Trash2 size={17} />
                 </button>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-4">
+              <div className="opening-fields grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-4">
                 <div className="form-field">
                   <label
                     htmlFor={`${prefix}-${kind}-${opening.id}-name`}
@@ -205,7 +205,7 @@ export function OpeningsSection({
                   <p className="mb-4 text-xs font-semibold leading-5 text-slate-600">
                     {t("openings.positionHelp")}
                   </p>
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-4">
+                  <div className="opening-placement-fields grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-4">
                     {wallOptions.length > 1 ? (
                       <div className="form-field">
                         <label

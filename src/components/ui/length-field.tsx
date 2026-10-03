@@ -53,7 +53,7 @@ export function LengthField({
   return (
     <div className="form-field">
       <label htmlFor={id} className="form-label">{label}</label>
-      <div className="dimension-group">
+      <div className="compound-field">
         <input
           id={id}
           value={displayValue(value, unit)}
@@ -62,14 +62,14 @@ export function LengthField({
           type="text"
           dir="ltr"
           aria-invalid={invalid}
-          className={`form-control form-control--numeric px-3 ${invalid ? "border-red-400" : ""}`}
+          className={`compound-field__value form-control form-control--numeric px-3 ${invalid ? "border-red-400" : ""}`}
         />
         <AppSelect
           data-select-kind="unit"
           aria-label={`${label} ${t("common.name")}`}
           value={unit}
           onChange={(event) => onUnitChange(event.target.value as LengthUnit)}
-          className="h-[3.25rem] w-full rounded-xl px-3 text-sm"
+          className="compound-field__unit h-[3.25rem] w-full rounded-xl px-3 text-sm"
         >
           <option value="m">{labels.m}</option>
           <option value="cm">{labels.cm}</option>

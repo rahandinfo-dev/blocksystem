@@ -28,7 +28,7 @@ export function BlockDimensionField({
   return (
     <div className="form-field">
       <label htmlFor={id} className="form-label">{label}</label>
-      <div className="dimension-group">
+      <div className="compound-field">
         <input
           id={id}
           value={Number.isFinite(shown) ? String(Number(shown.toFixed(8))) : ""}
@@ -42,14 +42,14 @@ export function BlockDimensionField({
           inputMode="decimal"
           dir="ltr"
           aria-invalid={invalid}
-          className={`form-control form-control--numeric px-3 ${invalid ? "border-red-400" : ""}`}
+          className={`compound-field__value form-control form-control--numeric px-3 ${invalid ? "border-red-400" : ""}`}
         />
         <AppSelect
           data-select-kind="unit"
           dir="ltr"
           value={unit}
           onChange={(event) => onUnitChange(event.target.value as LengthUnit)}
-          className="h-[3.25rem] w-full rounded-xl px-3 text-sm"
+          className="compound-field__unit h-[3.25rem] w-full rounded-xl px-3 text-sm"
         >
           <option value="mm">mm</option>
           <option value="cm">cm</option>

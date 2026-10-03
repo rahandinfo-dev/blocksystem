@@ -80,3 +80,17 @@ test("engineering import workspace is absent and the 2D plan uses an on-demand p
   assert.match(plan, /<FloorPlanWorkspace data=\{data\} onChange=\{onChange\}/);
   assert.match(plan, /plan\.measure|plan\.export|plan\.print|plan\.fullscreen/);
 });
+
+test("engineering fields use the shared compound control and responsive sticky-result rules", async () => {
+  const [lengthField, blockField, openings, styles] = await Promise.all([
+    readFile(source("components", "ui", "length-field.tsx"), "utf8"),
+    readFile(source("components", "ui", "block-dimension-field.tsx"), "utf8"),
+    readFile(source("features", "calculator", "components", "openings-section.tsx"), "utf8"),
+    readFile(source("app", "globals.css"), "utf8"),
+  ]);
+  assert.match(lengthField, /compound-field__value/);
+  assert.match(blockField, /compound-field__unit/);
+  assert.match(openings, /opening-fields/);
+  assert.match(styles, /--unit-lane/);
+  assert.match(styles, /@media \(max-width: 1023px\) \{ \.result-panel \{ position: static/);
+});

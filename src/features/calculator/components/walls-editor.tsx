@@ -81,7 +81,7 @@ export function WallsEditor(props: WallsEditorProps) {
                 </button>
                 </div>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              <div className="dimension-fields grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                 <div className="form-field">
                   <label className="form-label">{t("walls.name")}</label>
                   <input

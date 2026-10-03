@@ -6,5 +6,5 @@ import type { ComponentProps } from "react";
  * the application-wide visual treatment.
  */
 export function AppSelect({ className = "", ...props }: ComponentProps<"select">) {
-  return <select {...props} className={`app-select form-select ${className}`.trim()} />;
+  return <select {...props} data-control="select" className={`app-select form-select ${className}`.trim()} />;
 }
