@@ -81,7 +81,7 @@ test("engineering import workspace is absent and the 2D plan uses an on-demand p
   assert.match(plan, /plan\.measure|plan\.export|plan\.print|plan\.fullscreen/);
 });
 
-test("engineering fields use the shared compound control and responsive fixed-result rules", async () => {
+test("engineering fields use the shared compound control", async () => {
   const [lengthField, blockField, openings, styles] = await Promise.all([
     readFile(source("components", "ui", "length-field.tsx"), "utf8"),
     readFile(source("components", "ui", "block-dimension-field.tsx"), "utf8"),
@@ -92,20 +92,17 @@ test("engineering fields use the shared compound control and responsive fixed-re
   assert.match(blockField, /compound-field__unit/);
   assert.match(openings, /opening-fields/);
   assert.match(styles, /--unit-lane/);
-  assert.match(styles, /@media \(max-width: 1023px\) \{[\s\S]*?\.result-panel \{[\s\S]*?position: fixed/);
 });
 
-test("calculation results stay viewport-fixed while preserving the preview slot", async () => {
+test("calculation results remain a normal section above the preview", async () => {
   const [calculator, results, styles] = await Promise.all([
     readFile(source("features", "calculator", "components", "calculator.tsx"), "utf8"),
     readFile(source("features", "calculator", "components", "results-dashboard.tsx"), "utf8"),
     readFile(source("app", "globals.css"), "utf8"),
   ]);
-  assert.match(calculator, /result-panel-slot/);
+  assert.doesNotMatch(calculator, /result-panel-slot/);
+  assert.match(calculator, /<ResultsDashboard[\s\S]*?<WallPreview/);
   assert.doesNotMatch(results, /mobile-results-toggle|data-mobile-expanded/);
-  assert.match(styles, /@media \(min-width: 1024px\)/);
-  assert.match(styles, /position: fixed/);
-  assert.match(styles, /result-panel-slot \{ min-height/);
-  assert.match(styles, /safe-area-inset-top/);
-  assert.match(styles, /@media print/);
+  const resultPanelRules = [...styles.matchAll(/\.result-panel\s*\{([^}]*)\}/g)].map((match) => match[1]).join(" ");
+  assert.doesNotMatch(resultPanelRules, /position:\s*(?:fixed|sticky)|\b(?:top|bottom|inset|z-index|max-height)\s*:/);
 });
