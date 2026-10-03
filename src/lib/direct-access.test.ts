@@ -81,7 +81,7 @@ test("engineering import workspace is absent and the 2D plan uses an on-demand p
   assert.match(plan, /plan\.measure|plan\.export|plan\.print|plan\.fullscreen/);
 });
 
-test("engineering fields use the shared compound control and responsive sticky-result rules", async () => {
+test("engineering fields use the shared compound control and responsive fixed-result rules", async () => {
   const [lengthField, blockField, openings, styles] = await Promise.all([
     readFile(source("components", "ui", "length-field.tsx"), "utf8"),
     readFile(source("components", "ui", "block-dimension-field.tsx"), "utf8"),
@@ -92,7 +92,7 @@ test("engineering fields use the shared compound control and responsive sticky-r
   assert.match(blockField, /compound-field__unit/);
   assert.match(openings, /opening-fields/);
   assert.match(styles, /--unit-lane/);
-  assert.match(styles, /@media \(max-width: 1023px\) \{ \.result-panel \{ position: static/);
+  assert.match(styles, /@media \(max-width: 1023px\) \{[\s\S]*?\.result-panel \{[\s\S]*?position: fixed/);
 });
 
 test("calculation results have persistent desktop and mobile presentation paths", async () => {

@@ -651,7 +651,7 @@ input[type="number"]::-webkit-outer-spin-button {
 .waste-presets button:nth-child(2), .waste-presets button:nth-child(4), .waste-presets button:nth-child(7) { display: none; }
 .waste-presets button[aria-pressed="true"] { display: block !important; }
 
-.result-panel { position: sticky; top: 5.25rem; overflow: hidden; border-color: var(--line-strong) !important; }
+.result-panel { position: fixed; overflow: hidden; border-color: var(--line-strong) !important; }
 .result-panel__heading { padding-block-end: 1rem; border-block-end: 1px solid var(--line-soft); }
 .result-primary { margin-block-start: 1.25rem; padding: 1.35rem; border-radius: 1rem; background: var(--brand-navy); color: var(--brand-cream); }
 .result-primary p { color: color-mix(in srgb, var(--brand-cream) 78%, transparent); }
@@ -679,7 +679,6 @@ input[type="number"]::-webkit-outer-spin-button {
   .workspace-card { padding: 1rem !important; border-radius: .9rem !important; }
   .waste-presets { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
   .waste-presets button:nth-child(2), .waste-presets button:nth-child(4), .waste-presets button:nth-child(7) { display: none; }
-  .result-panel { position: static; }
 }
 
 /* Persistent calculation results use the existing live result object. Large
@@ -778,7 +777,6 @@ input[type="number"]::-webkit-outer-spin-button {
 .opening-placement > p { margin-block-end: 1rem !important; color: var(--ink-muted) !important; }
 
 .result-panel { top: calc(var(--app-header-height) + 1rem); max-height: calc(100dvh - var(--app-header-height) - 1.75rem); overflow-y: auto; overscroll-behavior: contain; }
-@media (max-width: 1023px) { .result-panel { position: static; max-height: none; overflow: visible; } }
 @media (max-width: 359px) { :root { --unit-lane: 6rem; } .compound-field__unit { font-size: .78rem !important; } }
 
 /* Informational menu pages share a quieter editorial surface than the
